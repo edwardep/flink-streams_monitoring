@@ -34,6 +34,24 @@ public class InternalStream<VectorType, RecordType> implements Serializable {
         return new InternalStream<>(null, 0L, StreamType.INCREMENT, null, null, payload);
     }
 
+    public static <V, R> InternalStream<V, R> upstreamGlobalEstimate(String key, V vector) {
+        return new InternalStream<>(key, 0L, StreamType.HYPERPARAMETERS, vector, null, null);
+    }
+
+    public static <V, R> InternalStream<V, R> upstreamQuantum(String key, Double payload) {
+        return new InternalStream<>(key, 0L, StreamType.QUANTUM, null, null, payload);
+    }
+
+    public static <V, R> InternalStream<V, R> upstreamLambda(String key, Double payload) {
+        return new InternalStream<>(key, 0L, StreamType.BALANCE, null, null, payload);
+    }
+
+    public static <V, R> InternalStream<V, R> upstreamRequestDrift(String key) {
+        return new InternalStream<>(key, 0L, StreamType.REQ_DRIFT, null, null, null);
+    }
+    public static <V, R> InternalStream<V, R> upstreamRequestZeta(String key) {
+        return new InternalStream<>(key, 0L, StreamType.REQ_ZETA, null, null, null);
+    }
 
     public long getTimestamp() { return timestamp; }
     public Integer unionKey() { return 0; }

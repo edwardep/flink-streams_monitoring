@@ -1,11 +1,10 @@
 package configurations;
 
-import org.apache.flink.api.common.state.MapState;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 
 import java.io.Serializable;
 import java.util.List;
-import java.util.Map;
+
 
 public interface BaseConfig<VectorType, RecordType> extends Serializable {
 
@@ -35,8 +34,6 @@ public interface BaseConfig<VectorType, RecordType> extends Serializable {
      */
     Integer getKeyGroupSize();
 
-    void updateHyperparams(Object hyperparameters);
-
     /**
      * You can override this method in order to set the desired &psi; monitoring Quantization factor.<br>
      * By default it returns <b>0.01</b>
@@ -52,7 +49,7 @@ public interface BaseConfig<VectorType, RecordType> extends Serializable {
 
     double safeFunction(VectorType drift, VectorType estimate);
 
-    void queryFunction(VectorType vector);
+    String queryFunction(VectorType estimate);
 
     // compress
 

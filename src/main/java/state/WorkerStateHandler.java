@@ -40,12 +40,8 @@ public class WorkerStateHandler<VectorType, RecordType> extends StateHandler<Vec
         zeta = createState("zeta", Types.DOUBLE);
         quantum = createState("quantum", Types.DOUBLE);
         localCounter = createState("localCounter", Types.INT);
-
         lastZeta = createState("lastZeta", Types.DOUBLE);
-
         lastTs = createState("lastTs", Types.LONG);
-
-        // rebalancing
         lambda = createState("lambda", Types.DOUBLE);
     }
 
