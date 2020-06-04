@@ -51,7 +51,7 @@ public class WorkerStateHandler<VectorType, RecordType> extends StateHandler<Vec
 
     /* Getters */
 
-    public VectorType getDriftVector() throws IOException {
+    public VectorType getDrift() throws IOException {
         return driftVector.value();
     }
     public VectorType getEstimate() throws IOException {
@@ -79,6 +79,9 @@ public class WorkerStateHandler<VectorType, RecordType> extends StateHandler<Vec
     public Double getLambda() throws IOException { return  lambda.value() != null ? lambda.value() : 1.0; }
 
     /* Setters */
+    public void setDrift(VectorType value) throws IOException { driftVector.update(value); }
+    public void setEstimate(VectorType value) throws IOException { estimate.update(value); }
+
     public void setFi(Double value) throws IOException { fi.update(value);}
     public void setZeta(Double value) throws IOException { zeta.update(value);}
     public void setQuantum(Double value) throws IOException { quantum.update(value); }
