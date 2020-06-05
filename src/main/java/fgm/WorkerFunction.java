@@ -27,8 +27,8 @@ public class WorkerFunction<VectorType, RecordType> implements Serializable {
     /**
      * The second argument (input) might change from RecordType to VectorType when SlidingWindow gets implemented.
      */
-    public void updateDrift(WorkerStateHandler<VectorType, RecordType> state, RecordType input) throws Exception {
-        state.setDrift(cfg.updateVector(state.getDrift(), input));
+    public void updateDrift(WorkerStateHandler<VectorType, RecordType> state, VectorType input) throws Exception {
+        state.setDrift(cfg.addVectors(state.getDrift(), input));
     }
 
 

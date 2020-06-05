@@ -16,7 +16,7 @@ public class Vector implements Serializable {
         this.vector = new HashMap<>(vec);
     }
 
-    public Map<Tuple2<Integer, Integer>, Double> getVector() {
+    public Map<Tuple2<Integer, Integer>, Double> map() {
         return vector;
     }
 

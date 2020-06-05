@@ -25,36 +25,40 @@ public class InternalStream<VectorType, RecordType> implements Serializable {
     public static <V, R> InternalStream<V, R> downstreamDrift(long timestamp, V vector) {
         return new InternalStream<>(null, timestamp, StreamType.DRIFT, vector, null, null);
     }
-
     public static <V, R> InternalStream<V, R> downstreamZeta(Double payload) {
         return new InternalStream<>(null, 0L, StreamType.ZETA, null, null, payload);
     }
-
     public static <V, R> InternalStream<V, R> downstreamIncrement(Double payload) {
         return new InternalStream<>(null, 0L, StreamType.INCREMENT, null, null, payload);
     }
-
     public static <V, R> InternalStream<V, R> upstreamGlobalEstimate(String key, V vector) {
         return new InternalStream<>(key, 0L, StreamType.HYPERPARAMETERS, vector, null, null);
     }
-
     public static <V, R> InternalStream<V, R> upstreamQuantum(String key, Double payload) {
         return new InternalStream<>(key, 0L, StreamType.QUANTUM, null, null, payload);
     }
-
     public static <V, R> InternalStream<V, R> upstreamLambda(String key, Double payload) {
         return new InternalStream<>(key, 0L, StreamType.BALANCE, null, null, payload);
     }
-
     public static <V, R> InternalStream<V, R> upstreamRequestDrift(String key) {
         return new InternalStream<>(key, 0L, StreamType.REQ_DRIFT, null, null, null);
     }
     public static <V, R> InternalStream<V, R> upstreamRequestZeta(String key) {
         return new InternalStream<>(key, 0L, StreamType.REQ_ZETA, null, null, null);
     }
+    public static<V, R> InternalStream<V, R> slideAggregate(String key, V vector) {
+        return new InternalStream<>(key, 0L, StreamType.INPUT, vector, null, null);
+    }
+    public static<V, R> InternalStream<V, R> windowSlide(String key, long timestamp, V vector) {
+        return new InternalStream<>(key, timestamp, StreamType.INPUT, vector, null, null);
+    }
+    public static<V> InternalStream initializeCoordinator(long warmup, V vector) {
+        return new InternalStream<>("0", warmup, StreamType.INIT, vector, null, null);
+    }
+
 
     public long getTimestamp() { return timestamp; }
-    public Integer unionKey() { return 0; }
+    public String unionKey() { return "0"; }
     public String getStreamID() { return streamID; }
     public StreamType getType() { return type; }
     public VectorType getVector() { return vector; }

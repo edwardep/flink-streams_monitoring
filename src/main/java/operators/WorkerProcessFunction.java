@@ -1,4 +1,4 @@
-package core;
+package operators;
 
 import configurations.BaseConfig;
 import datatypes.InternalStream;
@@ -8,11 +8,11 @@ import org.apache.flink.streaming.api.functions.co.KeyedCoProcessFunction;
 import org.apache.flink.util.Collector;
 import state.WorkerStateHandler;
 
-public class GenericWProcessFunction<VectorType, RecordType>  extends KeyedCoProcessFunction<Integer, InternalStream, InternalStream, InternalStream> {
+public class WorkerProcessFunction<VectorType, RecordType>  extends KeyedCoProcessFunction<Integer, InternalStream, InternalStream, InternalStream> {
 
     private BaseConfig<VectorType, RecordType> cfg;
 
-    public GenericWProcessFunction(BaseConfig<VectorType, RecordType> config){
+    public WorkerProcessFunction(BaseConfig<VectorType, RecordType> config){
         this.cfg = config;
     }
 
@@ -26,7 +26,7 @@ public class GenericWProcessFunction<VectorType, RecordType>  extends KeyedCoPro
 
         state.setLastTs(context.timestamp());
 
-        fgm.updateDrift(state, (RecordType) input.getRecord());
+        fgm.updateDrift(state, (VectorType) input.getVector());
     }
 
     @Override

@@ -1,4 +1,4 @@
-package core;
+package operators;
 
 import configurations.BaseConfig;
 import datatypes.InternalStream;
@@ -11,15 +11,15 @@ import org.slf4j.LoggerFactory;
 import state.CoordinatorStateHandler;
 
 
-public class GenericCProcessFunction<VectorType, RecordType> extends CoProcessFunction<InternalStream, InternalStream, InternalStream> {
+public class CoordinatorProcessFunction<VectorType, RecordType> extends CoProcessFunction<InternalStream, InternalStream, InternalStream> {
 
-    private transient static Logger LOG = LoggerFactory.getLogger(GenericCProcessFunction.class);
+    private transient static Logger LOG = LoggerFactory.getLogger(CoordinatorProcessFunction.class);
 
     private CoordinatorStateHandler<VectorType, RecordType> state;
     private CoordinatorFunction<VectorType, RecordType> fgm;
     private BaseConfig<VectorType, RecordType> cfg;
 
-    public GenericCProcessFunction(BaseConfig<VectorType, RecordType> cfg) {
+    public CoordinatorProcessFunction(BaseConfig<VectorType, RecordType> cfg) {
         this.cfg = cfg;
     }
 

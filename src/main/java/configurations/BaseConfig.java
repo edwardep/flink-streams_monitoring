@@ -43,14 +43,15 @@ public interface BaseConfig<VectorType, RecordType> extends Serializable {
 
     VectorType addVectors(VectorType vector1, VectorType vector2);
 
-    VectorType scaleVector(VectorType vector, Double scalar);
+    VectorType subtractVectors(VectorType vector1, VectorType vector2);
 
-    VectorType updateVector(VectorType vector, RecordType record);
+    VectorType scaleVector(VectorType vector, Double scalar);
 
     double safeFunction(VectorType drift, VectorType estimate);
 
-    String queryFunction(VectorType estimate);
+    String queryFunction(VectorType estimate, long timestamp);
 
+    VectorType batchUpdate(Iterable<RecordType> iterable);
     // compress
 
     // decompress

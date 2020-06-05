@@ -87,7 +87,7 @@ public class CoordinatorFunction<VectorType, RecordType> {
         state.setSync(false);
 
         /*  Monitored Query : Q(E) = Sum( E[i]^2 ) for each i in E */
-        ctx.output(Q_estimate, cfg.queryFunction(state.getEstimate()));
+        ctx.output(Q_estimate, cfg.queryFunction(state.getEstimate(), this.lastTs));
 
         lambda = 0.5;
 
