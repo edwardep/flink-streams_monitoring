@@ -3,10 +3,8 @@ package jobs;
 import configurations.FgmConfig;
 import datatypes.InputRecord;
 import datatypes.InternalStream;
-import datatypes.Vector;
 import operators.*;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.streaming.api.TimeCharacteristic;
@@ -30,11 +28,10 @@ public class MonitoringJob {
     public static void main(String[] args) throws Exception {
 
         int defParallelism = 2; // Flink Parallelism
-        int defWindowSize = 3000; //  the size of the sliding window in seconds
+        int defWindowSize = 1000; //  the size of the sliding window in seconds
         int defSlideSize = 5; //  the sliding interval in milliseconds
 
-        //todo: at the moment there isn't a trigger to start the monitoring
-        long defWarmup = 5;  //  warmup duration in seconds
+        long defWarmup = 5000;  //  warmup duration in milliseconds
 
         //String defInputPath = "hdfs://clu01.softnet.tuc.gr:8020/user/eepure/wc_day46_1.txt";
         String defInputPath = "D:/Documents/WorldCup_tools/ita_public_tools/output/wc_day46_1.txt";

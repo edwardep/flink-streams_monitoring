@@ -3,6 +3,7 @@ package fgm;
 
 import configurations.BaseConfig;
 import datatypes.InternalStream;
+import datatypes.Vector;
 import org.apache.flink.streaming.api.functions.co.CoProcessFunction;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
@@ -46,6 +47,7 @@ public class CoordinatorFunction<VectorType, RecordType> {
             state.setNodeCount(state.getNodeCount() + 1);
 
             /* Aggregate drift vectors ~ user-implemented */
+
             state.setAggregateState(cfg.addVectors(input.getVector(), state.getAggregateState()));
         }
 
@@ -196,7 +198,7 @@ public class CoordinatorFunction<VectorType, RecordType> {
         for (String key : cfg.getKeyGroup())
             collector.collect(upstreamGlobalEstimate(key, vector));
     }
-    private void broadcast_RequestDrift(Collector<InternalStream> collector) {
+    public void broadcast_RequestDrift(Collector<InternalStream> collector) {
         for (String key : cfg.getKeyGroup())
             collector.collect(upstreamRequestDrift(key));
     }

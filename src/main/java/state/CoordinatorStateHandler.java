@@ -1,6 +1,7 @@
 package state;
 
 import configurations.BaseConfig;
+import datatypes.Vector;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.state.MapState;
 import org.apache.flink.api.common.state.ValueState;
@@ -19,8 +20,11 @@ public class CoordinatorStateHandler<VectorType, RecordType> extends StateHandle
     private transient ValueState<Double> psiBeta;
     private transient ValueState<Integer> globalCounter;
 
+    private BaseConfig<VectorType, RecordType> cfg;
+
     public CoordinatorStateHandler(RuntimeContext runtimeContext, BaseConfig<VectorType, RecordType> cfg) {
         super(runtimeContext);
+        this.cfg = cfg;
         init(cfg);
     }
 
@@ -38,11 +42,12 @@ public class CoordinatorStateHandler<VectorType, RecordType> extends StateHandle
 
     /* Getters */
     public VectorType getEstimate() throws IOException {
-        return estimate.value();
+        return estimate.value() != null ? estimate.value() : cfg.newInstance();
     }
 
-    public VectorType getAggregateState() throws IOException { return aggregateState.value(); }
-
+    public VectorType getAggregateState() throws IOException {
+        return aggregateState.value() != null ? aggregateState.value() : cfg.newInstance();
+    }
 
     public Double getPsiBeta() throws IOException {
         return psiBeta.value() != null ? psiBeta.value() : 0d;

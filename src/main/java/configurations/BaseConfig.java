@@ -1,7 +1,9 @@
 package configurations;
 
+import com.esotericsoftware.kryo.NotNull;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 
+import javax.annotation.Nonnull;
 import java.io.Serializable;
 import java.util.List;
 
@@ -40,6 +42,13 @@ public interface BaseConfig<VectorType, RecordType> extends Serializable {
      * @return the quantization factor
      */
     default Double getMQF() { return 0.01; }
+
+    VectorType newInstance();
+
+    /**
+     * Comments about VectorType: Either make the VectorType always return a non Null object
+     * or handle null arguments in the methods below...otherwise NullPointerException is thrown
+     */
 
     VectorType addVectors(VectorType vector1, VectorType vector2);
 

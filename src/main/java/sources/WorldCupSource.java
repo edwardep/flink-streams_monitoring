@@ -46,11 +46,10 @@ public class WorldCupSource implements SourceFunction<InputRecord> {
                 InputRecord event = new InputRecord(
                         tokens[WCStruct.server.ordinal()],
                         timestampMillis,
-                        new Tuple2<>(
-                                Tuple2.of(
-                                        Integer.parseInt(tokens[WCStruct.clientID.ordinal()]),
-                                        Integer.parseInt(tokens[WCStruct.type.ordinal()])),
-                                1d));
+                        Tuple2.of(
+                                Integer.parseInt(tokens[WCStruct.clientID.ordinal()]),
+                                Integer.parseInt(tokens[WCStruct.type.ordinal()])),
+                        1d);
 
                 sourceContext.collect(event);
 

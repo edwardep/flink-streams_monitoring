@@ -42,7 +42,6 @@ public class WorkerFunction<VectorType, RecordType> implements Serializable {
     public void newRound(WorkerStateHandler<VectorType, RecordType> state,
                          VectorType vector) throws Exception {
 
-        state.setEstimate(null); // this is not necessary
         state.setEstimate(vector);
 
         state.setLambda(1.0);
@@ -133,7 +132,7 @@ public class WorkerFunction<VectorType, RecordType> implements Serializable {
             return;
 
         /*  If drift hasn't been updated since subRoundPhase stopped, do nothing */
-        if (state.getDrift() == null)
+        if (state.getDrift().equals(cfg.newInstance()))
             return;
 
         /*  new SubRound begins, initialize Z and Ci */

@@ -1,6 +1,7 @@
 package state;
 
 import configurations.BaseConfig;
+import datatypes.Vector;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.common.typeinfo.Types;
@@ -23,8 +24,11 @@ public class WorkerStateHandler<VectorType, RecordType> extends StateHandler<Vec
     private transient ValueState<Double> lambda;
     private transient ValueState<Long> lastTs;
 
+    private BaseConfig<VectorType, RecordType> cfg;
+
     public WorkerStateHandler(RuntimeContext runtimeContext, BaseConfig<VectorType, RecordType> cfg) {
         super(runtimeContext);
+        this.cfg = cfg;
         init(cfg);
     }
     @Override
@@ -48,10 +52,10 @@ public class WorkerStateHandler<VectorType, RecordType> extends StateHandler<Vec
     /* Getters */
 
     public VectorType getDrift() throws IOException {
-        return driftVector.value();
+        return driftVector.value() != null ? driftVector.value() : cfg.newInstance();
     }
     public VectorType getEstimate() throws IOException {
-        return estimate.value();
+        return estimate.value() != null ? estimate.value() : cfg.newInstance();
     }
 
     public Double getFi() throws IOException { return fi.value() != null ? fi.value() : 0d; }
@@ -70,7 +74,7 @@ public class WorkerStateHandler<VectorType, RecordType> extends StateHandler<Vec
 
     public Double getLastZeta() throws IOException { return lastZeta.value() != null ? lastZeta.value() : 0d; }
 
-    public Long getLastTs() throws IOException { return  lastTs.value() != null ? lastTs.value() : Long.MIN_VALUE; }
+    public Long getLastTs() throws IOException { return  lastTs.value() != null ? lastTs.value() : 0L; }
 
     public Double getLambda() throws IOException { return  lambda.value() != null ? lambda.value() : 1.0; }
 

@@ -55,6 +55,9 @@ public class InternalStream<VectorType, RecordType> implements Serializable {
     public static<V> InternalStream initializeCoordinator(long warmup, V vector) {
         return new InternalStream<>("0", warmup, StreamType.INIT, vector, null, null);
     }
+    public static InternalStream emptyStream() {
+        return new InternalStream<>("0", 0L, StreamType.INIT, null, null, null);
+    }
 
 
     public long getTimestamp() { return timestamp; }
@@ -70,10 +73,11 @@ public class InternalStream<VectorType, RecordType> implements Serializable {
     public String toString() {
         return "InternalStream{" +
                 "streamID=" + streamID +
+                ", timestamp=" + timestamp +
                 ", type=" + type +
                 ", vector=" +  vector +
                 ", record=" + record +
-                ", payload" + payload +
+                ", payload=" + payload +
                 '}';
     }
 }

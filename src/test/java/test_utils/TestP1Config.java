@@ -1,6 +1,6 @@
-package configurations;
+package test_utils;
 
-import com.esotericsoftware.kryo.NotNull;
+import configurations.BaseConfig;
 import datatypes.InputRecord;
 import datatypes.Vector;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
@@ -9,13 +9,13 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static utils.DoubleOperators.*;
+import static utils.DoubleOperators.normalize;
 
-public class FgmConfig implements BaseConfig<Vector, InputRecord> {
-
-
+public class TestP1Config implements BaseConfig<Vector, InputRecord> {
     @Override
     public TypeInformation<Vector> getVectorType() {
         return TypeInformation.of(Vector.class);
@@ -23,13 +23,12 @@ public class FgmConfig implements BaseConfig<Vector, InputRecord> {
 
     @Override
     public List<String> getKeyGroup() {
-        return new ArrayList<>(Arrays.asList("99", "98", "66", "67", "0", "2", "64", "33", "1", "4",
-                "71", "73", "5", "72", "68", "65", "3", "38", "34", "37", "69", "36", "35", "40", "39", "70"));
+        return new ArrayList<>(Collections.singletonList("1"));
     }
 
     @Override
     public Integer getKeyGroupSize() {
-        return 26;
+        return 1;
     }
 
     @Override
@@ -63,7 +62,7 @@ public class FgmConfig implements BaseConfig<Vector, InputRecord> {
 
     @Override
     public double safeFunction(Vector drift, Vector estimate) {
-        double epsilon = 0.10;
+        double epsilon = 0.20;
 
         double normEstimate = norm(estimate.map().entrySet());
 

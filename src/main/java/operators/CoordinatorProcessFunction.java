@@ -2,6 +2,7 @@ package operators;
 
 import configurations.BaseConfig;
 import datatypes.InternalStream;
+import datatypes.StreamType;
 import fgm.CoordinatorFunction;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.co.CoProcessFunction;
@@ -41,6 +42,7 @@ public class CoordinatorProcessFunction<VectorType, RecordType> extends CoProces
     @Override
     public void processElement2(InternalStream input, Context ctx, Collector<InternalStream> collector) throws Exception {
         // here you can initialize the globalEstimate
+        ctx.timerService().registerProcessingTimeTimer(ctx.timerService().currentProcessingTime() + (input.getTimestamp()));
     }
 
     @Override
@@ -48,5 +50,11 @@ public class CoordinatorProcessFunction<VectorType, RecordType> extends CoProces
         super.open(parameters);
         fgm = new CoordinatorFunction<>(cfg);
         state = new CoordinatorStateHandler<>(getRuntimeContext(), cfg);
+    }
+
+    @Override
+    public void onTimer(long timestamp, OnTimerContext ctx, Collector<InternalStream> collector) throws Exception {
+        super.onTimer(timestamp, ctx, collector);
+        fgm.broadcast_RequestDrift(collector);
     }
 }
