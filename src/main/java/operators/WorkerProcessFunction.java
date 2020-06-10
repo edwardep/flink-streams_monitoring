@@ -8,16 +8,16 @@ import org.apache.flink.streaming.api.functions.co.KeyedCoProcessFunction;
 import org.apache.flink.util.Collector;
 import state.WorkerStateHandler;
 
-public class WorkerProcessFunction<VectorType, RecordType>  extends KeyedCoProcessFunction<Integer, InternalStream, InternalStream, InternalStream> {
+public class WorkerProcessFunction<VectorType>  extends KeyedCoProcessFunction<Integer, InternalStream, InternalStream, InternalStream> {
 
-    private BaseConfig<VectorType, RecordType> cfg;
+    private BaseConfig<VectorType, ?> cfg;
 
-    public WorkerProcessFunction(BaseConfig<VectorType, RecordType> config){
+    public WorkerProcessFunction(BaseConfig<VectorType, ?> config){
         this.cfg = config;
     }
 
-    private WorkerFunction<VectorType, RecordType> fgm;
-    private WorkerStateHandler<VectorType, RecordType> state;
+    private WorkerFunction<VectorType> fgm;
+    private WorkerStateHandler<VectorType> state;
 
     @Override
     public void processElement1(InternalStream input, Context context, Collector<InternalStream> collector) throws Exception {

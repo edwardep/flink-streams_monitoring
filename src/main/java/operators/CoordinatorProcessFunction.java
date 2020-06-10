@@ -12,15 +12,15 @@ import org.slf4j.LoggerFactory;
 import state.CoordinatorStateHandler;
 
 
-public class CoordinatorProcessFunction<VectorType, RecordType> extends CoProcessFunction<InternalStream, InternalStream, InternalStream> {
+public class CoordinatorProcessFunction<VectorType> extends CoProcessFunction<InternalStream, InternalStream, InternalStream> {
 
     private transient static Logger LOG = LoggerFactory.getLogger(CoordinatorProcessFunction.class);
 
-    private CoordinatorStateHandler<VectorType, RecordType> state;
-    private CoordinatorFunction<VectorType, RecordType> fgm;
-    private BaseConfig<VectorType, RecordType> cfg;
+    private CoordinatorStateHandler<VectorType> state;
+    private CoordinatorFunction<VectorType> fgm;
+    private BaseConfig<VectorType, ?> cfg;
 
-    public CoordinatorProcessFunction(BaseConfig<VectorType, RecordType> cfg) {
+    public CoordinatorProcessFunction(BaseConfig<VectorType, ?> cfg) {
         this.cfg = cfg;
     }
 
@@ -42,6 +42,7 @@ public class CoordinatorProcessFunction<VectorType, RecordType> extends CoProces
     @Override
     public void processElement2(InternalStream input, Context ctx, Collector<InternalStream> collector) throws Exception {
         // here you can initialize the globalEstimate
+        fgm.disableRebalancing();
         ctx.timerService().registerProcessingTimeTimer(ctx.timerService().currentProcessingTime() + (input.getTimestamp()));
     }
 

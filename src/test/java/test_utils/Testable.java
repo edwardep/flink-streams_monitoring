@@ -27,6 +27,8 @@ public class Testable {
         public synchronized void invoke(InternalStream input, Context ctx) {
             result.add(input);
         }
+
+
     }
 
     public static class WindowValidationSink1 implements SinkFunction<String> {

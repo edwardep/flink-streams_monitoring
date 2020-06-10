@@ -19,26 +19,29 @@ import static jobs.MonitoringJob.Q_estimate;
 /**
  * The CoordinatorFunction class contains all the required FGM Coordinator Node methods.
  */
-public class CoordinatorFunction<VectorType, RecordType> {
+public class CoordinatorFunction<VectorType> {
     private transient static Logger LOG = LoggerFactory.getLogger(CoordinatorFunction.class);
 
-    private BaseConfig<VectorType, RecordType> cfg;
+    private BaseConfig<VectorType, ?> cfg;
     private long rounds = 0;
     private int subRounds = 0;
+
+    private boolean rebalancing = true;
+    public void disableRebalancing() { rebalancing = false; }
 
     private Double lambda = 1.0;
 
     private long lastTs = Long.MIN_VALUE;
 
-    public CoordinatorFunction(BaseConfig<VectorType, RecordType> cfg){
+    public CoordinatorFunction(BaseConfig<VectorType, ?> cfg){
         this.cfg = cfg;
     }
 
     /**
      *  Aggregates drift vectors. Also updates the hyper-parameters.
      */
-    public void handleDrift(CoordinatorStateHandler<VectorType, RecordType> state,
-                            InternalStream<VectorType, RecordType> input,
+    public void handleDrift(CoordinatorStateHandler<VectorType> state,
+                            InternalStream<VectorType, ?> input,
                             CoProcessFunction.Context ctx,
                             Collector<InternalStream> collector) throws Exception {
 
@@ -46,7 +49,7 @@ public class CoordinatorFunction<VectorType, RecordType> {
         {
             state.setNodeCount(state.getNodeCount() + 1);
 
-            /* Aggregate drift vectors ~ user-implemented */
+            /* Aggregate drift vectors */
 
             state.setAggregateState(cfg.addVectors(input.getVector(), state.getAggregateState()));
         }
@@ -75,12 +78,14 @@ public class CoordinatorFunction<VectorType, RecordType> {
         }
     }
 
-    private void newRound(CoordinatorStateHandler<VectorType, RecordType> state,
+    private void newRound(CoordinatorStateHandler<VectorType> state,
                           CoProcessFunction.Context ctx,
                           Collector<InternalStream> collector) throws Exception {
 
         /* Update Global estimate */
-        state.setEstimate(cfg.addVectors(state.getEstimate(), state.getAggregateState()));
+        state.setEstimate(cfg.addVectors(
+                state.getEstimate(),
+                cfg.scaleVector(state.getAggregateState(), 1.0/cfg.getKeyGroupSize())));
 
         /* Begin subRounds phase*/
         broadcast_Estimate(state.getEstimate(), collector);
@@ -91,7 +96,8 @@ public class CoordinatorFunction<VectorType, RecordType> {
         /*  Monitored Query : Q(E) = Sum( E[i]^2 ) for each i in E */
         ctx.output(Q_estimate, cfg.queryFunction(state.getEstimate(), this.lastTs));
 
-        lambda = 0.5;
+        if(rebalancing)
+            lambda = 0.5;
 
         /*  Cleanup */
         state.setAggregateState(null);
@@ -111,7 +117,7 @@ public class CoordinatorFunction<VectorType, RecordType> {
      * T = {@link BaseConfig#getMQF() quantizationFactor} * {@link BaseConfig#() parallelism} * {@link BaseConfig#safeFunction &phi;(0)}
      *
      */
-    public void handleZeta(CoordinatorStateHandler<VectorType, RecordType> state,
+    public void handleZeta(CoordinatorStateHandler<VectorType> state,
                            CoProcessFunction.Context ctx,
                            Double payload,
                            Collector<InternalStream> collector) throws Exception {
@@ -165,7 +171,7 @@ public class CoordinatorFunction<VectorType, RecordType> {
      * @param collector ProcessFunction collector
      * @throws IOException Flink exceptions
      */
-    public void handleIncrement(CoordinatorStateHandler<VectorType, RecordType> state,
+    public void handleIncrement(CoordinatorStateHandler<VectorType> state,
                                 Integer payload,
                                 Collector<InternalStream> collector) throws IOException {
 
@@ -216,10 +222,10 @@ public class CoordinatorFunction<VectorType, RecordType> {
     }
 
     // Psi_beta = (1 - lambda) * k * phi(BalanceVector / ((1 - lambda) * k))
-    private void updatePsiBeta(CoordinatorStateHandler<VectorType, RecordType> state) throws Exception {
+    private void updatePsiBeta(CoordinatorStateHandler<VectorType> state) throws Exception {
         state.setPsiBeta(
                 (1-lambda)*cfg.getKeyGroupSize()*cfg.safeFunction(
-                        cfg.scaleVector(state.getAggregateState(), 1/(1-lambda)),
+                        cfg.scaleVector(state.getAggregateState(), 1/((1-lambda)*cfg.getKeyGroupSize())),
                         state.getEstimate()));
     }
 }

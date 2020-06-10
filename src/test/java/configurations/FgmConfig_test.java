@@ -26,7 +26,7 @@ public class FgmConfig_test {
         assert res.getValue(Tuple2.of(4,4)) == 4d;
     }
 
-    @Test (expected = ArithmeticException.class)
+    @Test
     public void safeFunction_test() {
         FgmConfig cfg = new FgmConfig();
 

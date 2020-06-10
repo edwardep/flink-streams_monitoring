@@ -8,7 +8,7 @@ import org.apache.flink.api.common.typeinfo.Types;
 
 import java.io.IOException;
 
-public class WorkerStateHandler<VectorType, RecordType> extends StateHandler<VectorType, RecordType>{
+public class WorkerStateHandler<VectorType> extends StateHandler<VectorType>{
     private transient ValueState<VectorType> driftVector;
     private transient ValueState<VectorType> estimate;
 
@@ -24,15 +24,15 @@ public class WorkerStateHandler<VectorType, RecordType> extends StateHandler<Vec
     private transient ValueState<Double> lambda;
     private transient ValueState<Long> lastTs;
 
-    private BaseConfig<VectorType, RecordType> cfg;
+    private BaseConfig<VectorType, ?> cfg;
 
-    public WorkerStateHandler(RuntimeContext runtimeContext, BaseConfig<VectorType, RecordType> cfg) {
+    public WorkerStateHandler(RuntimeContext runtimeContext, BaseConfig<VectorType, ?> cfg) {
         super(runtimeContext);
         this.cfg = cfg;
         init(cfg);
     }
     @Override
-    public void init(BaseConfig<VectorType, RecordType> conf) {
+    public void init(BaseConfig<VectorType, ?> conf) {
 
         driftVector = createState("driftVector", conf.getVectorType());
         estimate = createState("estimate", conf.getVectorType());

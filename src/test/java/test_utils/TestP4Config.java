@@ -1,5 +1,6 @@
 package test_utils;
 
+
 import configurations.BaseConfig;
 import datatypes.InputRecord;
 import datatypes.Vector;
@@ -7,13 +8,13 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 import static utils.DoubleOperators.*;
-import static utils.DoubleOperators.normalize;
 
-public class TestP1Config implements BaseConfig<Vector, InputRecord> {
+public class TestP4Config implements BaseConfig<Vector, InputRecord> {
     @Override
     public TypeInformation<Vector> getVectorType() {
         return TypeInformation.of(Vector.class);
@@ -21,12 +22,12 @@ public class TestP1Config implements BaseConfig<Vector, InputRecord> {
 
     @Override
     public List<String> getKeyGroup() {
-        return new ArrayList<>(Collections.singletonList("1"));
+        return new ArrayList<>(Arrays.asList("0","1","2","3"));
     }
 
     @Override
     public Integer getKeyGroupSize() {
-        return 1;
+        return 4;
     }
 
     @Override
@@ -37,7 +38,7 @@ public class TestP1Config implements BaseConfig<Vector, InputRecord> {
     @Override
     public Vector addVectors(Vector vector1, Vector vector2) {
         Vector res = new Vector(vector1.map());
-        for(Tuple2<Integer, Integer> key : vector2.map().keySet())
+        for (Tuple2<Integer, Integer> key : vector2.map().keySet())
             res.map().put(key, res.getValue(key) + vector2.getValue(key));
         return res;
     }
@@ -45,7 +46,7 @@ public class TestP1Config implements BaseConfig<Vector, InputRecord> {
     @Override
     public Vector scaleVector(Vector vector, Double scalar) {
         Vector res = new Vector();
-        for(Tuple2<Integer, Integer> key : vector.map().keySet())
+        for (Tuple2<Integer, Integer> key : vector.map().keySet())
             res.map().put(key, vector.getValue(key) * scalar);
         return res;
     }
@@ -53,7 +54,7 @@ public class TestP1Config implements BaseConfig<Vector, InputRecord> {
     @Override
     public Vector subtractVectors(Vector vector1, Vector vector2) {
         Vector res = new Vector(vector1.map());
-        for(Tuple2<Integer, Integer> key : vector2.map().keySet())
+        for (Tuple2<Integer, Integer> key : vector2.map().keySet())
             res.map().put(key, res.getValue(key) - vector2.getValue(key));
         return res;
     }
@@ -64,8 +65,8 @@ public class TestP1Config implements BaseConfig<Vector, InputRecord> {
 
         double normEstimate = norm(estimate.map().entrySet());
 
-        if(drift == null)
-            return - epsilon * normEstimate;
+        if (drift == null)
+            return -epsilon * normEstimate;
 
         // calculate f1(X) = |X+E| -(1+e)|E|
         double f1 = norm(vec_add(estimate.map(), drift.map()).entrySet()) - (1.0 + epsilon) * normEstimate;
@@ -80,15 +81,15 @@ public class TestP1Config implements BaseConfig<Vector, InputRecord> {
     @Override
     public String queryFunction(Vector estimate, long timestamp) {
         double query = 0d;
-        for(Double val : estimate.map().values())
-            query += val*val;
+        for (Double val : estimate.map().values())
+            query += val * val;
         return timestamp + "," + query;
     }
 
     @Override
     public Vector batchUpdate(Iterable<InputRecord> iterable) {
         Vector res = new Vector();
-        for(InputRecord record : iterable)
+        for (InputRecord record : iterable)
             res.map().put(record.getKey(), record.getVal());
         return res;
     }
