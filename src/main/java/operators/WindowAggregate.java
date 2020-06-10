@@ -6,6 +6,8 @@ import datatypes.StreamType;
 import datatypes.Vector;
 import org.apache.flink.api.common.state.ListState;
 import org.apache.flink.api.common.state.ListStateDescriptor;
+import org.apache.flink.api.common.state.ValueState;
+import org.apache.flink.api.common.state.ValueStateDescriptor;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
@@ -39,16 +41,21 @@ public class WindowAggregate<VectorType> extends KeyedProcessFunction<String, In
         // append new slide to queue
         temp_queue.add(input);
 
+        long firstTimestamp = temp_queue.get(0).getTimestamp();
+        long lastTimestamp = ctx.timestamp();
+
+
         VectorType slide_drift = null;
         // compute slide_drift = appending_slide - evicting slide || this needs to be tested
         // todo: this condition needs rework. In order to be correct it should compare timestamps...
-        if (temp_queue.size() > window_size / window_slide) {
+        //if (temp_queue.size() > window_size / window_slide) {
+        if(lastTimestamp - firstTimestamp > window_size) {
             slide_drift = cfg.subtractVectors((VectorType) input.getVector(), (VectorType) temp_queue.get(0).getVector());
             temp_queue.remove(0);
+            out.collect(windowSlide(ctx.getCurrentKey(), ctx.timestamp(), slide_drift));
         }
-
-        // output appending slide
-        out.collect(windowSlide(ctx.getCurrentKey(), ctx.timestamp(), slide_drift));
+        else
+            out.collect(windowSlide(ctx.getCurrentKey(), ctx.timestamp(), input.getVector()));
 
         // save queue
         queue.update(temp_queue);

@@ -41,7 +41,7 @@ public class CoordinatorFunction<VectorType> {
      *  Aggregates drift vectors. Also updates the hyper-parameters.
      */
     public void handleDrift(CoordinatorStateHandler<VectorType> state,
-                            InternalStream<VectorType, ?> input,
+                            InternalStream<VectorType> input,
                             CoProcessFunction.Context ctx,
                             Collector<InternalStream> collector) throws Exception {
 
@@ -50,14 +50,15 @@ public class CoordinatorFunction<VectorType> {
             state.setNodeCount(state.getNodeCount() + 1);
 
             /* Aggregate drift vectors */
-
             state.setAggregateState(cfg.addVectors(input.getVector(), state.getAggregateState()));
+
+            /* Save the last positive timestamp */
+            if(input.getTimestamp() > 0) lastTs = input.getTimestamp();
         }
 
         /*  Received all */
         if(state.getNodeCount().equals(cfg.getKeyGroupSize()))
         {
-            lastTs = input.getTimestamp();
             state.setNodeCount(0);
 
             // Handling first round
@@ -105,6 +106,9 @@ public class CoordinatorFunction<VectorType> {
 
         rounds++;
         System.out.println("rounds: "+ rounds);
+
+        subRounds++;
+        System.out.println("subRounds: "+subRounds);
 
     }
 

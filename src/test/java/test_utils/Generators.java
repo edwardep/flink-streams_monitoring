@@ -12,10 +12,16 @@ public class Generators {
             map.put(Tuple2.of(i,i), i*1.0);
         return map;
     }
-    public static HashMap<Tuple2<Integer, Integer>, Double> generateSequence(int range, double scalar) {
+    public static HashMap<Tuple2<Integer, Integer>, Double> generateSequence(int range, int scalar) {
         HashMap<Tuple2<Integer, Integer>, Double> map = new HashMap<>();
         for(int i = 0; i < range; i++)
-            map.put(Tuple2.of(i,i), i*scalar);
+            map.put(Tuple2.of(i,i), i*scalar*1.0);
+        return map;
+    }
+    public static HashMap<Tuple2<Integer, Integer>, Double> generateSequence(int range, Double value) {
+        HashMap<Tuple2<Integer, Integer>, Double> map = new HashMap<>();
+        for(int i = 0; i < range; i++)
+            map.put(Tuple2.of(i,i), value);
         return map;
     }
 }

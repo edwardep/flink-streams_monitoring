@@ -27,16 +27,16 @@ public class MonitoringJob {
 
     public static void main(String[] args) throws Exception {
 
-        int defParallelism = 2; // Flink Parallelism
+        int defParallelism = 1; // Flink Parallelism
         int defWindowSize = 1000; //  the size of the sliding window in seconds
         int defSlideSize = 5; //  the sliding interval in milliseconds
 
-        long defWarmup = 5000;  //  warmup duration in milliseconds
+        long defWarmup = 7000;  //  warmup duration in milliseconds
 
         //String defInputPath = "hdfs://clu01.softnet.tuc.gr:8020/user/eepure/wc_day46_1.txt";
         String defInputPath = "D:/Documents/WorldCup_tools/ita_public_tools/output/wc_day46_1.txt";
         //String defInputPath = "C:/Users/eduar/IdeaProjects/flink-fgm/logs/SyntheticDataSet2.txt";
-        String defOutputPath = "C:/Users/eduar/IdeaProjects/flink-fgm/logs/output.txt";
+        String defOutputPath = "C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/output.txt";
         String defJobName = "FGM-pipeline";
 
 

@@ -26,7 +26,7 @@ public class Vector implements Serializable {
     }
 
     public boolean isEmpty() {
-        return vector == null;
+        return vector.isEmpty();
     }
 
     public String toString() {

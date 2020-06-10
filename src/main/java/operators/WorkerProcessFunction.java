@@ -21,16 +21,19 @@ public class WorkerProcessFunction<VectorType>  extends KeyedCoProcessFunction<I
 
     @Override
     public void processElement1(InternalStream input, Context context, Collector<InternalStream> collector) throws Exception {
-        if(input.getRecord() == null)
+        if(input.getVector() == null)
             return;
 
         state.setLastTs(context.timestamp());
+        assert state.getLastTs() > 0;
 
         fgm.updateDrift(state, (VectorType) input.getVector());
+        fgm.subRoundProcess(state, collector);
     }
 
     @Override
     public void processElement2(InternalStream input, Context context, Collector<InternalStream> collector) throws Exception {
+        //System.out.println(input.toString());
         switch (input.getType()) {
             case HYPERPARAMETERS:
                 fgm.newRound(state, (VectorType) input.getVector());

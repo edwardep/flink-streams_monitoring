@@ -1,8 +1,6 @@
 package fgm;
 
-import akka.protobuf.Internal;
 import datatypes.InternalStream;
-import datatypes.StreamType;
 import datatypes.Vector;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
@@ -18,9 +16,6 @@ import state.CoordinatorStateHandler;
 import test_utils.TestP1Config;
 import test_utils.TestP4Config;
 import test_utils.Testable;
-
-import java.util.HashMap;
-import java.util.Map;
 
 import static datatypes.InternalStream.*;
 import static junit.framework.TestCase.*;
