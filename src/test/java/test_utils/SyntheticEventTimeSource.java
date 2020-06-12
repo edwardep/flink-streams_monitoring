@@ -3,6 +3,7 @@ package test_utils;
 import datatypes.InputRecord;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
+import org.apache.flink.streaming.api.watermark.Watermark;
 
 import java.util.Random;
 
@@ -14,6 +15,8 @@ public class SyntheticEventTimeSource implements SourceFunction<InputRecord> {
     private int bound = 100;
     private Random rand = new Random(512);
     private Random rand2 = new Random(1489);
+
+
     @Override
     public void run(SourceContext<InputRecord> sourceContext) throws Exception {
 
@@ -22,17 +25,17 @@ public class SyntheticEventTimeSource implements SourceFunction<InputRecord> {
             /*
              *  Creates 1 GenericInputStream object per streamID per second (event time & ascending)
              */
-            long timestampMillis = System.currentTimeMillis()+(1000*monotonicity);
+            long timestampMillis = 5L+(1000*monotonicity);
             InputRecord event = new InputRecord(
                     "0",
                     timestampMillis,
-                    Tuple2.of(monotonicity,1),1d);
+                    Tuple2.of(rand.nextInt(100),1),1d);
 
 
             //streamID++;
 
             // Stop after..
-            if(monotonicity > 50000)
+            if(monotonicity > 100)
                 cancel();
 
             // manipulating the (Q(S) and Q(E)) curves height by changing the randomness bound on the keys
@@ -53,8 +56,12 @@ public class SyntheticEventTimeSource implements SourceFunction<InputRecord> {
 //                streamID = 0;
 //                monotonicity++;
             //}
-            monotonicity = monotonicity + rand.nextInt(10)+1;
+
+
+            monotonicity = monotonicity + 1;// + rand.nextInt(20);
+            if(monotonicity > 2) monotonicity += 9;
             sourceContext.collect(event);
+
         }
     }
 

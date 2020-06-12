@@ -23,7 +23,7 @@ public class WindowAggregate<VectorType> extends KeyedProcessFunction<String, In
     private BaseConfig<VectorType, ?> cfg;
 
     public WindowAggregate(int window_size, int window_slide, BaseConfig<VectorType, ?> cfg) {
-        this.window_size = window_size;
+        this.window_size = window_size*1000;  // timestamps are in milliseconds
         this.window_slide = window_slide;
         this.cfg = cfg;
     }
@@ -49,13 +49,13 @@ public class WindowAggregate<VectorType> extends KeyedProcessFunction<String, In
         // compute slide_drift = appending_slide - evicting slide || this needs to be tested
         // todo: this condition needs rework. In order to be correct it should compare timestamps...
         //if (temp_queue.size() > window_size / window_slide) {
-        if(lastTimestamp - firstTimestamp > window_size) {
+        if(lastTimestamp - firstTimestamp >= window_size) {
             slide_drift = cfg.subtractVectors((VectorType) input.getVector(), (VectorType) temp_queue.get(0).getVector());
             temp_queue.remove(0);
-            out.collect(windowSlide(ctx.getCurrentKey(), ctx.timestamp(), slide_drift));
+            out.collect(windowSlide(ctx.getCurrentKey(), ctx.timestamp(), slide_drift,0));
         }
         else
-            out.collect(windowSlide(ctx.getCurrentKey(), ctx.timestamp(), input.getVector()));
+            out.collect(windowSlide(ctx.getCurrentKey(), ctx.timestamp(), input.getVector(),0));
 
         // save queue
         queue.update(temp_queue);

@@ -89,7 +89,7 @@ public class TestP1Config implements BaseConfig<Vector, InputRecord> {
     public Vector batchUpdate(Iterable<InputRecord> iterable) {
         Vector res = new Vector();
         for(InputRecord record : iterable)
-            res.map().put(record.getKey(), record.getVal());
+            res.map().put(record.getKey(), res.map().getOrDefault(record.getKey(), 0d) + record.getVal());
         return res;
     }
 }

@@ -11,18 +11,33 @@ import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
+import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
 import org.apache.flink.streaming.api.functions.ProcessFunction;
 import org.apache.flink.streaming.api.functions.co.CoProcessFunction;
 import org.apache.flink.streaming.api.functions.co.KeyedCoProcessFunction;
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
+import org.apache.flink.streaming.api.watermark.Watermark;
+import org.apache.flink.streaming.api.windowing.assigners.GlobalWindows;
+import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
+import org.apache.flink.streaming.api.windowing.triggers.ContinuousEventTimeTrigger;
+import org.apache.flink.streaming.api.windowing.triggers.EventTimeTrigger;
+import org.apache.flink.streaming.api.windowing.triggers.Trigger;
+import org.apache.flink.streaming.api.windowing.triggers.TriggerResult;
+import org.apache.flink.streaming.api.windowing.windows.GlobalWindow;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 import org.junit.Test;
 import sources.WorldCupSource;
+import test_utils.SmartSource;
 import test_utils.SyntheticEventTimeSource;
 import test_utils.TestP1Config;
+
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
 
 import static datatypes.InternalStream.windowSlide;
 
@@ -35,7 +50,66 @@ public class CustomSlidingWindow {
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 
         int slide = 5;
-        int window = 1000;
+        int window = 20;
+
+        TestP1Config cfg = new TestP1Config();
+
+        KeyedStream<InputRecord, String> keyedStream = env
+                .addSource(new SyntheticEventTimeSource())
+                .map(x -> x)
+                .returns(TypeInformation.of(InputRecord.class))
+                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InputRecord>() {
+                    @Override
+                    public long extractAscendingTimestamp(InputRecord inputRecord) {
+                        return inputRecord.getTimestamp();
+                    }
+                })
+                .keyBy(InputRecord::getStreamID);
+
+
+        keyedStream
+                .timeWindow(Time.seconds(slide))
+                .process(new SlideAggregate<>(cfg))  // this does not trigger every 5 seconds ONLY if it has new records
+                .keyBy(InternalStream::getStreamID)
+                .process(new WindowAggregate3<>(window, slide, cfg))
+                .keyBy(InternalStream::getStreamID)
+                .process(new ProcessFunction<InternalStream, String>() {
+                    Vector state = new Vector();
+                    @Override
+                    public void processElement(InternalStream internalStream, Context context, Collector<String> collector) throws Exception {
+                        //state = cfg.addVectors(state, (Vector) internalStream.getVector());
+                        collector.collect(cfg.queryFunction((Vector) internalStream.getVector(), internalStream.getTimestamp() + 1));
+                        //System.out.println(windowSlide("0", internalStream.getTimestamp()+1, internalStream.getVector(),0).toString());
+                        //collector.collect(windowSlide("0", internalStream.getTimestamp()+1, internalStream.getVector(), ((Vector) internalStream.getVector()).map().size()));
+                    }
+                })
+                .writeAsText("C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/CW05.txt", FileSystem.WriteMode.OVERWRITE);
+
+        keyedStream
+                .timeWindow(Time.seconds(window), Time.seconds(slide))
+                .process(new ProcessWindowFunction<InputRecord, String, String, TimeWindow>() {
+                    @Override
+                    public void process(String s, Context context, Iterable<InputRecord> iterable, Collector<String> collector) throws Exception {
+                        Vector vec = cfg.batchUpdate(iterable);
+                        collector.collect(cfg.queryFunction(vec, context.window().getEnd()));
+                        //System.out.println("FLINK: "+windowSlide("0", context.window().getEnd(), vec,0).toString());
+                        //collector.collect(windowSlide("0", context.window().getEnd(), vec, vec.map().size()));
+                    }
+                })
+                .writeAsText("C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/BW05.txt", FileSystem.WriteMode.OVERWRITE);
+
+
+        env.execute();
+    }
+
+    @Test
+    public void globalWindow_test() throws Exception {
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.setParallelism(1);
+        env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
+
+        int slide = 5;
+        int window = 3000;
 
         TestP1Config cfg = new TestP1Config();
 
@@ -53,31 +127,51 @@ public class CustomSlidingWindow {
 
         keyedStream
                 .timeWindow(Time.seconds(slide))
-                .process(new SlideAggregate<>(cfg))
+                .process(new SlideAggregate<>(cfg))  // this does not trigger every 5 seconds ONLY if it has new records
                 .keyBy(InternalStream::getStreamID)
-                .process(new WindowAggregate<>(window, slide, cfg))
+                .process(new WindowAggregate2<>(window, slide, cfg))
                 .process(new ProcessFunction<InternalStream, String>() {
                     Vector state = new Vector();
                     @Override
                     public void processElement(InternalStream internalStream, Context context, Collector<String> collector) throws Exception {
                         state = cfg.addVectors(state, (Vector) internalStream.getVector());
-                        collector.collect(cfg.queryFunction(state, internalStream.getTimestamp()+1));
-                        //collector.collect(windowSlide("0", internalStream.getTimestamp()+1, state));
+                        collector.collect(cfg.queryFunction(state, internalStream.getTimestamp() + 1));
+                        //System.out.println(windowSlide("0", internalStream.getTimestamp()+1, internalStream.getVector()).toString());
+                        //collector.collect(windowSlide("0", internalStream.getTimestamp()+1, internalStream.getVector()));
                     }
                 })
-                .writeAsText("C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/CW03.txt", FileSystem.WriteMode.OVERWRITE);
+                .writeAsText("C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/CW05.txt", FileSystem.WriteMode.OVERWRITE);
 
-        keyedStream
-                .timeWindow(Time.seconds(window), Time.seconds(slide))
-                .process(new ProcessWindowFunction<InputRecord, String, String, TimeWindow>() {
-                    @Override
-                    public void process(String s, Context context, Iterable<InputRecord> iterable, Collector<String> collector) throws Exception {
-                        Vector vec = cfg.batchUpdate(iterable);
-                        collector.collect(cfg.queryFunction(vec, context.window().getEnd()));
-                        //collector.collect(windowSlide("0", context.window().getEnd(), vec));
-                    }
-                })
-                .writeAsText("C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/BW03.txt", FileSystem.WriteMode.OVERWRITE);
+
+
         env.execute();
+    }
+
+    public static class MyTimeTrigger extends Trigger<InputRecord, TimeWindow> {
+
+        @Override
+        public TriggerResult onElement(InputRecord inputRecord, long l, TimeWindow window, TriggerContext ctx) throws Exception {
+            if (window.maxTimestamp() <= ctx.getCurrentWatermark()) {
+                return TriggerResult.FIRE;
+            } else {
+                ctx.registerEventTimeTimer(window.maxTimestamp());
+                return TriggerResult.CONTINUE;
+            }
+        }
+
+        @Override
+        public TriggerResult onProcessingTime(long l, TimeWindow timeWindow, TriggerContext triggerContext) throws Exception {
+            return TriggerResult.CONTINUE;
+        }
+
+        @Override
+        public TriggerResult onEventTime(long time, TimeWindow window, TriggerContext ctx) throws Exception {
+            return time == window.maxTimestamp() ? TriggerResult.FIRE : TriggerResult.CONTINUE;
+        }
+
+        @Override
+        public void clear(TimeWindow window, TriggerContext ctx) throws Exception {
+            ctx.deleteEventTimeTimer(window.maxTimestamp());
+        }
     }
 }

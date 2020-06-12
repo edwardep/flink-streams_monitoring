@@ -17,6 +17,6 @@ public class SlideAggregate<VectorType, RecordType> extends ProcessWindowFunctio
     @Override
     public void process(String streamID, Context ctx, Iterable<RecordType> iterable, Collector<InternalStream> out) {
         VectorType vector = cfg.batchUpdate(iterable);
-        out.collect(slideAggregate(streamID, vector));
+        out.collect(slideAggregate(streamID, ctx.window().getEnd(), vector));
     }
 }

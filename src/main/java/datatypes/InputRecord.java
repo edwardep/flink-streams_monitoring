@@ -31,6 +31,14 @@ public class InputRecord {
         return val;
     }
 
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    public void setVal(Double val) {
+        this.val = val;
+    }
+
     @Override
     public String toString() {
         return "InputRecord{" +

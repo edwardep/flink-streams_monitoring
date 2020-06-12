@@ -44,11 +44,11 @@ public class InternalStream<VectorType> implements Serializable {
     public static InternalStream upstreamRequestZeta(String key) {
         return new InternalStream<>(key, 0L, StreamType.REQ_ZETA, null,null);
     }
-    public static <V> InternalStream slideAggregate(String key, V vector) {
-        return new InternalStream<>(key, 0L, StreamType.INPUT, vector, null);
+    public static <V> InternalStream slideAggregate(String key, long timestamp, V vector) {
+        return new InternalStream<>(key, timestamp, StreamType.INPUT, vector, null);
     }
-    public static <V> InternalStream windowSlide(String key, long timestamp, V vector) {
-        return new InternalStream<>(key, timestamp, StreamType.INPUT, vector,null);
+    public static <V> InternalStream windowSlide(String key, long timestamp, V vector, int size) {
+        return new InternalStream<>(key, timestamp, StreamType.INPUT, vector, Double.valueOf(size));
     }
     public static <V> InternalStream initializeCoordinator(long warmup, V vector) {
         return new InternalStream<>("0", warmup, StreamType.INIT, vector, null);
@@ -65,8 +65,12 @@ public class InternalStream<VectorType> implements Serializable {
     public VectorType getVector() { return vector; }
     public Double getPayload() { return payload; }
 
-
     @Override
+    public String toString() {
+        return timestamp/1000+" : "+payload+" : "+vector.toString();
+    }
+
+/*    @Override
     public String toString() {
         return "InternalStream{" +
                 "streamID=" + streamID +
@@ -75,5 +79,5 @@ public class InternalStream<VectorType> implements Serializable {
                 ", vector=" +  vector +
                 ", payload=" + payload +
                 '}';
-    }
+    }*/
 }
