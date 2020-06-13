@@ -67,7 +67,7 @@ public class InternalStream<VectorType> implements Serializable {
 
     @Override
     public String toString() {
-        return timestamp/1000+" : "+payload+" : "+vector.toString();
+        return timestamp+" : "+payload+" : "+vector.toString();
     }
 
 /*    @Override

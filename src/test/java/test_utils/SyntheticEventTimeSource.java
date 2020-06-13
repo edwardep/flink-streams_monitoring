@@ -25,7 +25,7 @@ public class SyntheticEventTimeSource implements SourceFunction<InputRecord> {
             /*
              *  Creates 1 GenericInputStream object per streamID per second (event time & ascending)
              */
-            long timestampMillis = 5L+(1000*monotonicity);
+            long timestampMillis = 5L+(100*monotonicity);
             InputRecord event = new InputRecord(
                     "0",
                     timestampMillis,
@@ -35,7 +35,7 @@ public class SyntheticEventTimeSource implements SourceFunction<InputRecord> {
             //streamID++;
 
             // Stop after..
-            if(monotonicity > 100)
+            if(monotonicity > 1000000)
                 cancel();
 
             // manipulating the (Q(S) and Q(E)) curves height by changing the randomness bound on the keys
@@ -58,8 +58,8 @@ public class SyntheticEventTimeSource implements SourceFunction<InputRecord> {
             //}
 
 
-            monotonicity = monotonicity + 1;// + rand.nextInt(20);
-            if(monotonicity > 2) monotonicity += 9;
+            monotonicity = monotonicity + rand.nextInt(20) + 1;
+            //if(monotonicity > 2) monotonicity += 9;
             sourceContext.collect(event);
 
         }

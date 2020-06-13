@@ -42,55 +42,62 @@ public class WindowAggregate3<VectorType> extends KeyedProcessFunction<String, I
     private int count = 0;
     private long window_start;
     private long window_end;
+    private long currentTs;
 
     @Override
     public void processElement(InternalStream input, Context ctx, Collector<InternalStream> out) throws Exception {
 
-        //System.out.println("newRecord @"+ctx.timestamp());
+        System.out.println("newRecord @"+input.toString());
+
+        currentTs = ctx.timestamp()+1;
 
         if(first){
-            window_start =  ctx.timestamp(); first = false; window_end = window_start + window_size;
+            window_start =  currentTs; first = false; window_end = window_start + window_size;
         }
+        System.out.println("outside if : Window: ["+window_start+" : "+window_end+"]");
 
-        if(ctx.timestamp() - lastTs > window_slide) {
-            //System.out.println("GAP MANAGER");
-            for (long start = lastTs + window_slide; start < ctx.timestamp(); start += window_slide) {
-                //System.out.println("Start @ "+start);
-                if (start >= window_end) {
+        if(currentTs - lastTs > window_slide) {
+            System.out.println("GAP MANAGER");
+            for (long start = lastTs + window_slide; start <= currentTs; start += window_slide) {
+                System.out.println("FOR: Start @ "+start);
+
+                if (start >= window_end) { // start >= window_end
                     window_start += window_slide;
                     window_end += window_slide;
-                    //System.out.println("Window: ["+window_start+" : "+window_end+"]");
-
+                    System.out.println("FOR: Window: ["+window_start+" : "+window_end+"]");
                     while (!queue.isEmpty() && queue.get(0).getTimestamp() < window_start)
                         queue.remove(0);
                 }
+
+                if(start == currentTs) break;
 
                 VectorType res = cfg.newInstance();
                 for (InternalStream record : queue)
                     res = cfg.addVectors((VectorType) record.getVector(), res);
 
-                out.collect(windowSlide("0", lastTs + start, res,0));
+                out.collect(windowSlide("0", start, res,0));
 
+                System.out.println("GAP MANAGER outputing @"+ (start));
                 //System.out.println("Queue contains the following:");
-                //for(InternalStream elem : queue) System.out.println(elem.toString());
+                for(InternalStream elem : queue) System.out.println(elem.toString());
 
             }
         }
 
         queue.add(input);
-        lastTs = ctx.timestamp();
+        lastTs = currentTs;
 
-        while(ctx.timestamp() - queue.get(0).getTimestamp() >= window_size - window_slide)
+        while(currentTs - queue.get(0).getTimestamp() > window_size - window_slide)
             queue.remove(0);
 
         VectorType res = cfg.newInstance();
         for (InternalStream record : queue)
             res = cfg.addVectors((VectorType) record.getVector(), res);
 
-        out.collect(windowSlide("0", ctx.timestamp(), res,0));
+        out.collect(windowSlide("0", currentTs, res,0));
 
-        //System.out.println("Finally: ");
-        //(InternalStream elem : queue) System.out.println(elem.toString());
+        System.out.println("Finally outputing @"+currentTs);
+        for (InternalStream elem : queue) System.out.println(elem.toString());
 
         //System.out.println(++count);
     }

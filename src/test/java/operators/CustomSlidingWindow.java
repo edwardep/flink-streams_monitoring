@@ -36,6 +36,8 @@ import test_utils.SyntheticEventTimeSource;
 import test_utils.TestP1Config;
 
 import javax.annotation.Nullable;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,7 +52,7 @@ public class CustomSlidingWindow {
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 
         int slide = 5;
-        int window = 20;
+        int window = 1000;
 
         TestP1Config cfg = new TestP1Config();
 
@@ -78,12 +80,15 @@ public class CustomSlidingWindow {
                     @Override
                     public void processElement(InternalStream internalStream, Context context, Collector<String> collector) throws Exception {
                         //state = cfg.addVectors(state, (Vector) internalStream.getVector());
-                        collector.collect(cfg.queryFunction((Vector) internalStream.getVector(), internalStream.getTimestamp() + 1));
+                        collector.collect(cfg.queryFunction((Vector) internalStream.getVector(), internalStream.getTimestamp()));
                         //System.out.println(windowSlide("0", internalStream.getTimestamp()+1, internalStream.getVector(),0).toString());
-                        //collector.collect(windowSlide("0", internalStream.getTimestamp()+1, internalStream.getVector(), ((Vector) internalStream.getVector()).map().size()));
+                        //collector.collect(windowSlide("0", internalStream.getTimestamp(), internalStream.getVector(), ((Vector) internalStream.getVector()).map().size()));
+
+                        writeToText(cfg.queryFunction((Vector) internalStream.getVector(), internalStream.getTimestamp())+"\n", "C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/CW05.txt");
+                        writeToText(windowSlide("0", internalStream.getTimestamp(), internalStream.getVector()+"\n", ((Vector) internalStream.getVector()).map().size()).toString(), "C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/CW06.txt");
                     }
-                })
-                .writeAsText("C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/CW05.txt", FileSystem.WriteMode.OVERWRITE);
+                });
+                //.writeAsText("C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/CW06.txt", FileSystem.WriteMode.OVERWRITE);
 
         keyedStream
                 .timeWindow(Time.seconds(window), Time.seconds(slide))
@@ -91,17 +96,29 @@ public class CustomSlidingWindow {
                     @Override
                     public void process(String s, Context context, Iterable<InputRecord> iterable, Collector<String> collector) throws Exception {
                         Vector vec = cfg.batchUpdate(iterable);
-                        collector.collect(cfg.queryFunction(vec, context.window().getEnd()));
+                        //collector.collect(cfg.queryFunction(vec, context.window().getEnd()));
                         //System.out.println("FLINK: "+windowSlide("0", context.window().getEnd(), vec,0).toString());
                         //collector.collect(windowSlide("0", context.window().getEnd(), vec, vec.map().size()));
+
+                        writeToText(cfg.queryFunction(vec, context.window().getEnd())+"\n", "C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/BW05.txt");
+                        writeToText(windowSlide("0", context.window().getEnd(), vec, vec.map().size()).toString()+"\n", "C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/BW06.txt");
                     }
-                })
-                .writeAsText("C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/BW05.txt", FileSystem.WriteMode.OVERWRITE);
+                });
+                //.writeAsText("C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/BW06.txt", FileSystem.WriteMode.OVERWRITE);
 
 
         env.execute();
     }
-
+    private static void writeToText(String string, String filename) {
+        try {
+            FileWriter myWriter = new FileWriter(filename, true);
+            myWriter.write(string);
+            myWriter.close();
+        } catch (IOException e) {
+            System.out.println("An error occurred.");
+            e.printStackTrace();
+        }
+    }
     @Test
     public void globalWindow_test() throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -135,7 +152,7 @@ public class CustomSlidingWindow {
                     @Override
                     public void processElement(InternalStream internalStream, Context context, Collector<String> collector) throws Exception {
                         state = cfg.addVectors(state, (Vector) internalStream.getVector());
-                        collector.collect(cfg.queryFunction(state, internalStream.getTimestamp() + 1));
+                        collector.collect(cfg.queryFunction(state, internalStream.getTimestamp()));
                         //System.out.println(windowSlide("0", internalStream.getTimestamp()+1, internalStream.getVector()).toString());
                         //collector.collect(windowSlide("0", internalStream.getTimestamp()+1, internalStream.getVector()));
                     }
