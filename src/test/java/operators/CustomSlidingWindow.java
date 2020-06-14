@@ -73,7 +73,7 @@ public class CustomSlidingWindow {
                 .timeWindow(Time.seconds(slide))
                 .process(new SlideAggregate<>(cfg))  // this does not trigger every 5 seconds ONLY if it has new records
                 .keyBy(InternalStream::getStreamID)
-                .process(new WindowAggregate3<>(window, slide, cfg))
+                .process(new WindowAggregate<>(window, slide, cfg))
                 .keyBy(InternalStream::getStreamID)
                 .process(new ProcessFunction<InternalStream, String>() {
                     Vector state = new Vector();
@@ -117,78 +117,6 @@ public class CustomSlidingWindow {
         } catch (IOException e) {
             System.out.println("An error occurred.");
             e.printStackTrace();
-        }
-    }
-    @Test
-    public void globalWindow_test() throws Exception {
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.setParallelism(1);
-        env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
-
-        int slide = 5;
-        int window = 3000;
-
-        TestP1Config cfg = new TestP1Config();
-
-        KeyedStream<InputRecord, String> keyedStream = env
-                .addSource(new SyntheticEventTimeSource())
-                .map(x -> x)
-                .returns(TypeInformation.of(InputRecord.class))
-                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InputRecord>() {
-                    @Override
-                    public long extractAscendingTimestamp(InputRecord inputRecord) {
-                        return inputRecord.getTimestamp();
-                    }
-                })
-                .keyBy(InputRecord::getStreamID);
-
-        keyedStream
-                .timeWindow(Time.seconds(slide))
-                .process(new SlideAggregate<>(cfg))  // this does not trigger every 5 seconds ONLY if it has new records
-                .keyBy(InternalStream::getStreamID)
-                .process(new WindowAggregate2<>(window, slide, cfg))
-                .process(new ProcessFunction<InternalStream, String>() {
-                    Vector state = new Vector();
-                    @Override
-                    public void processElement(InternalStream internalStream, Context context, Collector<String> collector) throws Exception {
-                        state = cfg.addVectors(state, (Vector) internalStream.getVector());
-                        collector.collect(cfg.queryFunction(state, internalStream.getTimestamp()));
-                        //System.out.println(windowSlide("0", internalStream.getTimestamp()+1, internalStream.getVector()).toString());
-                        //collector.collect(windowSlide("0", internalStream.getTimestamp()+1, internalStream.getVector()));
-                    }
-                })
-                .writeAsText("C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/CW05.txt", FileSystem.WriteMode.OVERWRITE);
-
-
-
-        env.execute();
-    }
-
-    public static class MyTimeTrigger extends Trigger<InputRecord, TimeWindow> {
-
-        @Override
-        public TriggerResult onElement(InputRecord inputRecord, long l, TimeWindow window, TriggerContext ctx) throws Exception {
-            if (window.maxTimestamp() <= ctx.getCurrentWatermark()) {
-                return TriggerResult.FIRE;
-            } else {
-                ctx.registerEventTimeTimer(window.maxTimestamp());
-                return TriggerResult.CONTINUE;
-            }
-        }
-
-        @Override
-        public TriggerResult onProcessingTime(long l, TimeWindow timeWindow, TriggerContext triggerContext) throws Exception {
-            return TriggerResult.CONTINUE;
-        }
-
-        @Override
-        public TriggerResult onEventTime(long time, TimeWindow window, TriggerContext ctx) throws Exception {
-            return time == window.maxTimestamp() ? TriggerResult.FIRE : TriggerResult.CONTINUE;
-        }
-
-        @Override
-        public void clear(TimeWindow window, TriggerContext ctx) throws Exception {
-            ctx.deleteEventTimeTimer(window.maxTimestamp());
         }
     }
 }

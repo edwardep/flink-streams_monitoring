@@ -24,49 +24,72 @@ public class WindowAggregate<VectorType> extends KeyedProcessFunction<String, In
 
     public WindowAggregate(int window_size, int window_slide, BaseConfig<VectorType, ?> cfg) {
         this.window_size = window_size*1000;  // timestamps are in milliseconds
-        this.window_slide = window_slide;
+        this.window_slide = window_slide*1000;
         this.cfg = cfg;
     }
 
-    private ListState<InternalStream> queue;
+
+    private ArrayList<InternalStream> queue = new ArrayList<>();
+
+    private long lastTs;
+    private boolean first = true;
+    private long window_start;
+    private long window_end;
+
     @Override
     public void processElement(InternalStream input, Context ctx, Collector<InternalStream> out) throws Exception {
-        // input contains a Vector with values aggregated from the most recent slide
 
-        // retrieve previous queue state
-        ArrayList<InternalStream> temp_queue = new ArrayList<>();
-        for (InternalStream slide : queue.get())
-            temp_queue.add(slide);
+        long currentTs = ctx.timestamp() + 1;
 
-        // append new slide to queue
-        temp_queue.add(input);
-
-        long firstTimestamp = temp_queue.get(0).getTimestamp();
-        long lastTimestamp = ctx.timestamp();
-
-
-        VectorType slide_drift = null;
-        // compute slide_drift = appending_slide - evicting slide || this needs to be tested
-        // todo: this condition needs rework. In order to be correct it should compare timestamps...
-        //if (temp_queue.size() > window_size / window_slide) {
-        if(lastTimestamp - firstTimestamp >= window_size) {
-            slide_drift = cfg.subtractVectors((VectorType) input.getVector(), (VectorType) temp_queue.get(0).getVector());
-            temp_queue.remove(0);
-            out.collect(windowSlide(ctx.getCurrentKey(), ctx.timestamp(), slide_drift,0));
+        if(first){
+            window_start = currentTs; window_end = window_start + window_size; first = false;
         }
-        else
-            out.collect(windowSlide(ctx.getCurrentKey(), ctx.timestamp(), input.getVector(),0));
 
-        // save queue
-        queue.update(temp_queue);
+        /*  If the previous slide arrived earlier (> window_slide) than the current one, this subroutine will
+        *   slide the window one slide at a time, remove the old elements and output the remaining ones.    */
+        if(currentTs - lastTs > window_slide) {
 
-        // cleanup
-        temp_queue.clear();
+            for (long start = lastTs + window_slide; start <= currentTs; start += window_slide) {
+
+                if (start >= window_end) {
+                    // slide window
+                    window_start += window_slide;
+                    window_end += window_slide;
+
+                    // remove items with timestamps less than window_start timestamp
+                    while (!queue.isEmpty() && queue.get(0).getTimestamp() < window_start)
+                        queue.remove(0);
+                }
+                /* This is the last slide, it shouldn't output anything because it will be done outside the loop */
+                if(start == currentTs) break;
+
+                /*  Output window vector    */
+                VectorType res = cfg.newInstance();
+                for (InternalStream record : queue)
+                    res = cfg.addVectors((VectorType) record.getVector(), res);
+
+                out.collect(windowSlide("0", start, res,0));
+            }
+        }
+        /*  Enqueue arriving slide and save it's timestamp*/
+        queue.add(input);
+        lastTs = currentTs;
+
+        /*  Remove slides with timestamp outside the window limits */
+        while(currentTs - queue.get(0).getTimestamp() > window_size - window_slide)
+            queue.remove(0);
+
+        /*  Output window vector    */
+        VectorType res = cfg.newInstance();
+        for (InternalStream record : queue)
+            res = cfg.addVectors((VectorType) record.getVector(), res);
+
+        out.collect(windowSlide("0", currentTs, res,0));
+
     }
 
     @Override
     public void open(Configuration parameters) {
-        queue = getRuntimeContext()
-                .getListState(new ListStateDescriptor<>("queue", TypeInformation.of(InternalStream.class)));
+
     }
 }

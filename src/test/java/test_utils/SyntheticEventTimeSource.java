@@ -58,7 +58,7 @@ public class SyntheticEventTimeSource implements SourceFunction<InputRecord> {
             //}
 
 
-            monotonicity = monotonicity + rand.nextInt(20) + 1;
+            monotonicity = monotonicity + rand.nextInt(50) + 1;
             //if(monotonicity > 2) monotonicity += 9;
             sourceContext.collect(event);
 
