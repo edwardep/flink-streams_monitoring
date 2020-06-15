@@ -11,6 +11,8 @@ public class InternalStream<VectorType> implements Serializable {
     private VectorType vector;
     private Double payload;
 
+    public InternalStream() {}
+
     public InternalStream(String streamID, long timestamp, StreamType type, VectorType vector, Double payload)
     {
         this.streamID = streamID;
@@ -47,8 +49,8 @@ public class InternalStream<VectorType> implements Serializable {
     public static <V> InternalStream slideAggregate(String key, long timestamp, V vector) {
         return new InternalStream<>(key, timestamp, StreamType.INPUT, vector, null);
     }
-    public static <V> InternalStream windowSlide(String key, long timestamp, V vector, int size) {
-        return new InternalStream<>(key, timestamp, StreamType.INPUT, vector, Double.valueOf(size));
+    public static <V> InternalStream windowSlide(String key, long timestamp, V vector) {
+        return new InternalStream<>(key, timestamp, StreamType.INPUT, vector, null);
     }
     public static <V> InternalStream initializeCoordinator(long warmup, V vector) {
         return new InternalStream<>("0", warmup, StreamType.INIT, vector, null);
@@ -57,6 +59,10 @@ public class InternalStream<VectorType> implements Serializable {
         return new InternalStream<>("0", 0L, StreamType.INIT, null,null);
     }
 
+    // window debugging
+    public static <V> InternalStream windowSlide(String key, long timestamp, V vector, int size) {
+        return new InternalStream<>(key, timestamp, StreamType.INPUT, vector, Double.valueOf(size));
+    }
 
     public long getTimestamp() { return timestamp; }
     public String unionKey() { return "0"; }
@@ -65,12 +71,12 @@ public class InternalStream<VectorType> implements Serializable {
     public VectorType getVector() { return vector; }
     public Double getPayload() { return payload; }
 
-    @Override
-    public String toString() {
-        return timestamp+" : "+payload+" : "+vector.toString();
-    }
+//    @Override
+//    public String toString() {
+//        return timestamp+" : "+payload+" : "+vector.toString();
+//    }
 
-/*    @Override
+    @Override
     public String toString() {
         return "InternalStream{" +
                 "streamID=" + streamID +
@@ -79,5 +85,5 @@ public class InternalStream<VectorType> implements Serializable {
                 ", vector=" +  vector +
                 ", payload=" + payload +
                 '}';
-    }*/
+    }
 }

@@ -50,6 +50,8 @@ public interface BaseConfig<VectorType, RecordType> extends Serializable {
      * or handle null arguments in the methods below...otherwise NullPointerException is thrown
      */
 
+    VectorType addRecord(RecordType record, VectorType vector);
+
     VectorType addVectors(VectorType vector1, VectorType vector2);
 
     VectorType subtractVectors(VectorType vector1, VectorType vector2);

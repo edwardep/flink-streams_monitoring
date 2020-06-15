@@ -8,5 +8,6 @@ public enum WCStruct {
     method,
     status,
     type,
-    server
+    server,
+    value
 }

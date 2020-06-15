@@ -9,10 +9,10 @@ import org.apache.flink.util.Collector;
 import static datatypes.InternalStream.slideAggregate;
 
 
-public class SlideAggregate<VectorType, RecordType> extends ProcessWindowFunction<RecordType, InternalStream, String, TimeWindow> {
+public class SlideProcess<VectorType, RecordType> extends ProcessWindowFunction<RecordType, InternalStream, String, TimeWindow> {
 
     private BaseConfig<VectorType, RecordType> cfg;
-    public SlideAggregate(BaseConfig<VectorType, RecordType> cfg) { this.cfg = cfg; }
+    public SlideProcess(BaseConfig<VectorType, RecordType> cfg) { this.cfg = cfg; }
 
     @Override
     public void process(String streamID, Context ctx, Iterable<RecordType> iterable, Collector<InternalStream> out) {

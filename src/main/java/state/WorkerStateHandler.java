@@ -11,6 +11,8 @@ import java.io.IOException;
 public class WorkerStateHandler<VectorType> extends StateHandler<VectorType>{
     private transient ValueState<VectorType> driftVector;
     private transient ValueState<VectorType> estimate;
+    private transient ValueState<VectorType> lastState;
+    private transient ValueState<VectorType> currentState;
 
     private transient ValueState<Boolean> subRoundPhase;
     private transient ValueState<Boolean> subRoundInit;
@@ -36,6 +38,8 @@ public class WorkerStateHandler<VectorType> extends StateHandler<VectorType>{
 
         driftVector = createState("driftVector", conf.getVectorType());
         estimate = createState("estimate", conf.getVectorType());
+        lastState = createState("lastState", conf.getVectorType());
+        currentState = createState("currentState", conf.getVectorType());
 
         subRoundInit = createState("subRoundInit", Types.BOOLEAN);
         subRoundPhase = createState("subRoundPhase", Types.BOOLEAN);
@@ -56,6 +60,12 @@ public class WorkerStateHandler<VectorType> extends StateHandler<VectorType>{
     }
     public VectorType getEstimate() throws IOException {
         return estimate.value() != null ? estimate.value() : cfg.newInstance();
+    }
+    public VectorType getLastState() throws IOException {
+        return lastState.value() != null ? lastState.value() : cfg.newInstance();
+    }
+    public VectorType getCurrentState() throws IOException {
+        return currentState.value() != null ? currentState.value() : cfg.newInstance();
     }
 
     public Double getFi() throws IOException { return fi.value() != null ? fi.value() : 0d; }
@@ -81,6 +91,8 @@ public class WorkerStateHandler<VectorType> extends StateHandler<VectorType>{
     /* Setters */
     public void setDrift(VectorType value) throws IOException { driftVector.update(value); }
     public void setEstimate(VectorType value) throws IOException { estimate.update(value); }
+    public void setLastState(VectorType value) throws IOException { lastState.update(value); }
+    public void setCurrentState(VectorType value) throws IOException { currentState.update(value); }
 
     public void setFi(Double value) throws IOException { fi.update(value);}
     public void setZeta(Double value) throws IOException { zeta.update(value);}

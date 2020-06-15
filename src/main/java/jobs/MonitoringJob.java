@@ -1,6 +1,8 @@
 package jobs;
 
 import configurations.FgmConfig;
+import configurations.TestP1Config;
+import configurations.TestP4Config;
 import datatypes.InputRecord;
 import datatypes.InternalStream;
 import operators.*;
@@ -13,11 +15,16 @@ import org.apache.flink.streaming.api.datastream.IterativeStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
+import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.time.Time;
+import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
+import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
+import sources.SyntheticEventTimeSource;
 import sources.WorldCupSource;
 
 import static datatypes.InternalStream.initializeCoordinator;
+import static datatypes.InternalStream.windowSlide;
 
 public class MonitoringJob {
 
@@ -27,11 +34,11 @@ public class MonitoringJob {
 
     public static void main(String[] args) throws Exception {
 
-        int defParallelism = 1; // Flink Parallelism
+        int defParallelism = 2; // Flink Parallelism
         int defWindowSize = 1000; //  the size of the sliding window in seconds
         int defSlideSize = 5; //  the sliding interval in milliseconds
 
-        long defWarmup = 7000;  //  warmup duration in milliseconds
+        long defWarmup = 3000;  //  warmup duration in milliseconds
 
         //String defInputPath = "hdfs://clu01.softnet.tuc.gr:8020/user/eepure/wc_day46_1.txt";
         String defInputPath = "D:/Documents/WorldCup_tools/ita_public_tools/output/wc_day46_1.txt";
@@ -45,6 +52,14 @@ public class MonitoringJob {
         env.getConfig().setGlobalJobParameters(parameters);
         env.setParallelism(parameters.getInt("p", defParallelism));
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
+
+
+        /**
+         *  The FGM configuration class. (User-implemented functions)
+         */
+        //FgmConfig config = new FgmConfig();
+        //TestP1Config config = new TestP1Config();
+        TestP4Config config = new TestP4Config(0.1);
 
         /**
          *  Dummy Source to Initialize coordinator
@@ -62,7 +77,7 @@ public class MonitoringJob {
 //                .readTextFile(parameters.get("input", defInputPath))
 //                .flatMap(new WorldCupSourceHDFS());
         DataStream<InputRecord> streamFromFile = env
-                .addSource(new WorldCupSource(defInputPath))
+                .addSource(new SyntheticEventTimeSource())
                 .map(x -> x)
                 .returns(TypeInformation.of(InputRecord.class));
 
@@ -72,12 +87,6 @@ public class MonitoringJob {
         IterativeStream.ConnectedIterativeStreams<InputRecord, InternalStream > iteration = streamFromFile
                 .iterate()
                 .withFeedbackType(InternalStream.class);
-
-
-        /**
-         *  The FGM configuration class. (User-implemented functions)
-         */
-        FgmConfig config = new FgmConfig();
 
 
         /**
@@ -99,14 +108,11 @@ public class MonitoringJob {
                     }
                 })
                 .keyBy(InputRecord::getStreamID)
-                .timeWindow(Time.seconds(parameters.getInt("slide", defSlideSize)))
-                .process(new SlideAggregate<>(config))
-                .keyBy(InternalStream::getStreamID)
-                .process(new WindowAggregate<>(
-                        parameters.getInt("size", defWindowSize),
-                        parameters.getInt("slide", defSlideSize),
-                        config))
-                .startNewChain()
+                .timeWindow(
+                        Time.seconds(parameters.getInt("window", defWindowSize)),
+                        Time.seconds(parameters.getInt("slide", defSlideSize)))
+                .aggregate(new IncAggregation<>(config), new WindowFunction<>())
+
                 /**
                  * The KeyedCoProcessFunction contains all of fgm's worker logic.
                  * Input1 -> Sliding Window output

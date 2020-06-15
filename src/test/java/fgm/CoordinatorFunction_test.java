@@ -1,5 +1,7 @@
 package fgm;
 
+import configurations.TestP1Config;
+import configurations.TestP4Config;
 import datatypes.InternalStream;
 import datatypes.Vector;
 import org.apache.flink.configuration.Configuration;
@@ -13,8 +15,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import state.CoordinatorStateHandler;
-import test_utils.TestP1Config;
-import test_utils.TestP4Config;
 import test_utils.Testable;
 
 import static datatypes.InternalStream.*;

@@ -1,6 +1,7 @@
 package fgm;
 
 
+import configurations.TestP1Config;
 import datatypes.InternalStream;
 import datatypes.Vector;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -9,13 +10,10 @@ import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
 import org.apache.flink.util.Collector;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import state.WorkerStateHandler;
-import test_utils.TestP1Config;
 import test_utils.Testable;
 
 

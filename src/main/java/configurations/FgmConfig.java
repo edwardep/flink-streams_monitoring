@@ -38,6 +38,12 @@ public class FgmConfig implements BaseConfig<Vector, InputRecord> {
     }
 
     @Override
+    public Vector addRecord(InputRecord record, Vector vector) {
+        vector.map().put(record.getKey(), vector.getValue(record.getKey()) + record.getVal());
+        return vector;
+    }
+
+    @Override
     public Vector addVectors(Vector vector1, Vector vector2) {
         Vector res = new Vector(vector1.map());
         for(Tuple2<Integer, Integer> key : vector2.map().keySet())
@@ -92,7 +98,7 @@ public class FgmConfig implements BaseConfig<Vector, InputRecord> {
     public Vector batchUpdate(Iterable<InputRecord> iterable) {
         Vector res = new Vector();
         for(InputRecord record : iterable)
-            res.map().put(record.getKey(), record.getVal());
+            res.map().put(record.getKey(), res.map().getOrDefault(record.getKey(), 0d) + record.getVal());
         return res;
     }
 }

@@ -28,7 +28,8 @@ public class WorkerFunction<VectorType> implements Serializable {
      * The second argument (input) might change from RecordType to VectorType when SlidingWindow gets implemented.
      */
     public void updateDrift(WorkerStateHandler<VectorType> state, VectorType input) throws Exception {
-        state.setDrift(cfg.addVectors(state.getDrift(), input));
+        state.setDrift(cfg.subtractVectors(input, state.getLastState()));
+        state.setCurrentState(input);
     }
 
 
@@ -69,6 +70,7 @@ public class WorkerFunction<VectorType> implements Serializable {
         // Send Drift Vector to the Coordinator
         out.collect(downstreamDrift(state.getLastTs(), state.getDrift()));
 
+        state.setLastState(state.getCurrentState());
         // Clear the drift vector
         state.setDrift(null);
     }

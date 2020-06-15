@@ -22,7 +22,7 @@ public class Vector implements Serializable {
     }
 
     public Double getValue(Tuple2<Integer, Integer> key) {
-        return vector.get(key) == null ? 0d : vector.get(key);
+        return vector.getOrDefault(key, 0d);
     }
 
     public boolean isEmpty() {
