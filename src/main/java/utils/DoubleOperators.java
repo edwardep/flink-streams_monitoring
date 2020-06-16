@@ -34,42 +34,9 @@ public class DoubleOperators {
 
 
     public static <K> Map<K, Double> vec_add(Map<K, Double> A, Map<K, Double> B) {
-        Map<K, Double> res = new HashMap<>(A);
         for(Map.Entry<K, Double> entry : B.entrySet())
-            res.put(entry.getKey(), res.getOrDefault(entry.getKey(), 0d) + entry.getValue());
-        return res;
-    }
-
-    public static <K> Map<K, Double> scaleVector(MapState<K, Double> vector, Double scalar) throws Exception {
-        HashMap<K, Double> ret = new HashMap<>();
-        for (Map.Entry<K, Double> entry : vector.entries())
-            ret.put(entry.getKey(), scalar * entry.getValue());
-        return ret;
-    }
-
-    public static <K> Iterable<Map.Entry<K, Double>> vec_add_map(MapState<K, Double> A,
-                                                                 Map<K, Double> B) throws Exception {
-
-        Map<K, Double> ret = new HashMap<>();
-        for(Map.Entry<K, Double> entry : A.entries())
-            ret.put(entry.getKey(), entry.getValue());
-
-        for(Map.Entry<K, Double> entry : B.entrySet())
-            ret.put(entry.getKey(), ret.getOrDefault(entry.getKey(), 0d) + entry.getValue());
-
-        return ret.entrySet();
-    }
-    public static <K> Iterable<Map.Entry<K, Double>> vec_add_map(MapState<K, Double> A,
-                                                                 MapState<K, Double> B) throws Exception {
-
-        Map<K, Double> ret = new HashMap<>();
-        for(Map.Entry<K, Double> entry : A.entries())
-            ret.put(entry.getKey(), entry.getValue());
-
-        for(Map.Entry<K, Double> entry : B.entries())
-            ret.put(entry.getKey(), ret.getOrDefault(entry.getKey(), 0d) + entry.getValue());
-
-        return ret.entrySet();
+            A.put(entry.getKey(), A.getOrDefault(entry.getKey(), 0d) + entry.getValue());
+        return A;
     }
 
     public static <K> Double norm(Iterable<Map.Entry<K, Double>> iterable) {
@@ -108,6 +75,13 @@ public class DoubleOperators {
         return res;
     }
 
+    public static <K> Map<K, Double> normalize(Map<K, Double> vector, double norm) {
+        if(norm == 0)
+            throw new ArithmeticException("norm value cannot be 0 when normalizing");
+        vector.replaceAll((k, v) -> v / norm);
+        return vector;
+    }
+
 
     public static <K> Double dotProduct(Map<K, Double> A,
                                         Map<K, Double> B) {
@@ -123,15 +97,6 @@ public class DoubleOperators {
         double product = 0d;
         for (K key : A.keySet()){
             if(B.containsKey(key))
-                product += A.get(key) * B.get(key);
-        }
-        return product;
-    }
-    public static <K> Double dotProductMap(Map<K, Double> A,
-                                           MapState<K, Double> B) throws Exception {
-        double product = 0d;
-        for (K key : A.keySet()){
-            if(B.contains(key))
                 product += A.get(key) * B.get(key);
         }
         return product;

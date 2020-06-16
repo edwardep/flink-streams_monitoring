@@ -1,10 +1,11 @@
 package test_utils;
 
-import configurations.TestP4Config;
+import configurations.BaseConfig;
+import configurations.FgmConfig;
 import datatypes.InputRecord;
 import datatypes.Vector;
+import org.apache.flink.api.common.functions.AggregateFunction;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
@@ -15,7 +16,7 @@ import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 import org.junit.Test;
-import sources.SyntheticEventTimeSource;
+
 import sources.WorldCupSource;
 
 
@@ -33,11 +34,12 @@ public class Validation {
         int slide = 5;
         int window = 1000;
 
-        TestP4Config cfg = new TestP4Config();
+        //TestP4Config cfg = new TestP4Config();
+        FgmConfig cfg = new FgmConfig();
 
         KeyedStream<InputRecord, String> keyedStream = env
-                .addSource(new SyntheticEventTimeSource())
-                //.addSource(new WorldCupSource(defInputPath))
+                //.addSource(new SyntheticEventTimeSource())
+                .addSource(new WorldCupSource(defInputPath))
                 .map(x -> x)
                 .returns(TypeInformation.of(InputRecord.class))
                 .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InputRecord>() {
@@ -50,18 +52,44 @@ public class Validation {
 
         keyedStream
                 .timeWindow(Time.seconds(window), Time.seconds(slide))
-                .process(new ProcessWindowFunction<InputRecord, String, String, TimeWindow>() {
-
-                    @Override
-                    public void process(String s, Context context, Iterable<InputRecord> iterable, Collector<String> collector) throws Exception {
-                        Vector vec = cfg.scaleVector(cfg.batchUpdate(iterable),1/4d);
-                        collector.collect(cfg.queryFunction(vec, context.window().getEnd()));
-                    }
-                })
+                .aggregate(new WindowAgg(), new WindowFunc(cfg))
                 .writeAsText("C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/validation_1000.txt", FileSystem.WriteMode.OVERWRITE);
 
 
 
         env.execute();
+    }
+
+    public static class WindowAgg implements AggregateFunction<InputRecord, Vector, Vector> {
+        @Override
+        public Vector createAccumulator() {
+            return new Vector();
+        }
+        @Override
+        public Vector add(InputRecord inputRecord, Vector vector) {
+            vector.map().put(inputRecord.getKey(), vector.getValue(inputRecord.getKey()) + inputRecord.getVal());
+            return vector;
+        }
+        @Override
+        public Vector getResult(Vector vector) {
+            return vector;
+        }
+        @Override
+        public Vector merge(Vector vector, Vector acc1) {
+            return null;
+        }
+    }
+
+    private static class WindowFunc extends ProcessWindowFunction<Vector, String, String, TimeWindow> {
+
+        private BaseConfig<Vector,?> cfg;
+
+        WindowFunc(BaseConfig<Vector, ?> cfg) { this.cfg = cfg; }
+
+        @Override
+        public void process(String s, Context context, Iterable<Vector> iterable, Collector<String> collector) throws Exception {
+            Vector vec = cfg.scaleVector(iterable.iterator().next(), 1.0/cfg.getKeyGroupSize());
+            collector.collect(cfg.queryFunction(vec, context.window().getEnd()));
+        }
     }
 }

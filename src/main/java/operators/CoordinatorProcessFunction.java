@@ -43,7 +43,7 @@ public class CoordinatorProcessFunction<VectorType> extends CoProcessFunction<In
     @Override
     public void processElement2(InternalStream input, Context ctx, Collector<InternalStream> collector) throws Exception {
         // here you can initialize the globalEstimate
-        fgm.disableRebalancing();
+        //fgm.disableRebalancing();
         ctx.timerService().registerProcessingTimeTimer(ctx.timerService().currentProcessingTime() + (input.getTimestamp()));
     }
 

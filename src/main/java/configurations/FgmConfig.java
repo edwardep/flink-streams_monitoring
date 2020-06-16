@@ -1,12 +1,10 @@
 package configurations;
 
-import com.esotericsoftware.kryo.NotNull;
 import datatypes.InputRecord;
 import datatypes.Vector;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 
-import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -53,9 +51,8 @@ public class FgmConfig implements BaseConfig<Vector, InputRecord> {
 
     @Override
     public Vector scaleVector(Vector vector, Double scalar) {
-        Vector res = new Vector();
-        for(Tuple2<Integer, Integer> key : vector.map().keySet())
-            res.map().put(key, vector.getValue(key) * scalar);
+        Vector res = new Vector(vector.map());
+        res.map().replaceAll((k, v) -> v * scalar);
         return res;
     }
 
@@ -69,7 +66,7 @@ public class FgmConfig implements BaseConfig<Vector, InputRecord> {
 
     @Override
     public double safeFunction(Vector drift, Vector estimate) {
-        double epsilon = 0.10;
+        double epsilon = 0.20;
 
         double normEstimate = norm(estimate.map().entrySet());
 
@@ -80,7 +77,7 @@ public class FgmConfig implements BaseConfig<Vector, InputRecord> {
         double f1 = norm(vec_add(estimate.map(), drift.map()).entrySet()) - (1.0 + epsilon) * normEstimate;
 
         // calculate f2(X) = -e|E| - X dot (E/|E|)
-        double f2 = -epsilon * normEstimate - dotProductMap(normalize(estimate.map().entrySet(), normEstimate), drift.map());
+        double f2 = -epsilon * normEstimate - dotProductMap(normalize(estimate.map(), normEstimate), drift.map());
 
         // select the maximum of the two values
         return Math.max(f1, f2);
@@ -91,7 +88,7 @@ public class FgmConfig implements BaseConfig<Vector, InputRecord> {
         double query = 0d;
         for(Double val : estimate.map().values())
             query += val*val;
-        return timestamp + "," + query;
+        return (timestamp+1) + "," + query;
     }
 
     @Override

@@ -35,6 +35,12 @@ public class TestP1Config implements BaseConfig<Vector, InputRecord> {
     }
 
     @Override
+    public Vector addRecord(InputRecord record, Vector vector) {
+        vector.map().put(record.getKey(), vector.getValue(record.getKey()) + record.getVal());
+        return vector;
+    }
+
+    @Override
     public Vector addVectors(Vector vector1, Vector vector2) {
         Vector res = new Vector(vector1.map());
         for(Tuple2<Integer, Integer> key : vector2.map().keySet())

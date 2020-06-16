@@ -22,8 +22,6 @@ import org.apache.flink.util.Collector;
 import org.junit.Test;
 import sources.SyntheticEventTimeSource;
 import sources.WorldCupSource;
-import sources.WorldCupSource2;
-import state.WindowStateHandler;
 import test_utils.SyntheticSlidingSource;
 import utils.DataSetTransformer;
 
@@ -252,46 +250,6 @@ public class CustomSlidingWindow {
         env.execute();
     }
 
-    @Test
-    public void slidingWorldCup_test() throws Exception {
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.setParallelism(4);
-        env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
-
-        int slide = 5;
-        int window = 1000;
-        String defInputPath = "D:/Documents/WorldCup_tools/ita_public_tools/output/wc_day46_1_slide.txt";
-
-        //TestP1Config cfg = new TestP1Config();
-        FgmConfig cfg = new FgmConfig();
-
-        KeyedStream<InputRecord, String> keyedStream = env
-                .addSource(new WorldCupSource2(defInputPath))
-               // .addSource(new SyntheticSlidingSource(window))
-                .map(x -> x)
-                .returns(TypeInformation.of(InputRecord.class))
-                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InputRecord>() {
-                    @Override
-                    public long extractAscendingTimestamp(InputRecord inputRecord) {
-                        return inputRecord.getTimestamp();
-                    }
-                })
-                .keyBy(InputRecord::getStreamID);
-
-        keyedStream
-                .timeWindow(Time.seconds(slide))
-                .process(new SlideProcess<>(cfg))
-                .process(new ProcessFunction<InternalStream, String>() {
-                    Vector vec = new Vector();
-                    @Override
-                    public void processElement(InternalStream internalStream, Context context, Collector<String> collector) throws Exception {
-                        vec = cfg.addVectors(vec, (Vector) internalStream.getVector());
-                        collector.collect(cfg.queryFunction(vec, internalStream.getTimestamp()));
-                    }
-                });
-
-        env.execute();
-    }
 
     @Test
     public void dataSetTrans_test() throws IOException {
@@ -311,7 +269,7 @@ public class CustomSlidingWindow {
         TestP1Config cfg = new TestP1Config();
 
         KeyedStream<InputRecord, String> keyedStream = env
-                .addSource(new SyntheticEventTimeSource())
+                .addSource(new SyntheticEventTimeSource(10000000, 10000, 100, 5, 5))
                 .map(x -> x)
                 .returns(TypeInformation.of(InputRecord.class))
                 .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InputRecord>() {
@@ -322,20 +280,20 @@ public class CustomSlidingWindow {
                 })
                 .keyBy(k->"0");
 
-//        keyedStream
-//                .timeWindow(Time.seconds(window), Time.seconds(slide))
-//                .process(new ProcessWindowFunction<InputRecord, String, String, TimeWindow>() {
-//                    @Override
-//                    public void process(String s, Context context, Iterable<InputRecord> iterable, Collector<String> collector) throws Exception {
-//                        collector.collect(cfg.queryFunction(cfg.batchUpdate(iterable), context.window().getEnd()));
-//                    }
-//                })
-//                .writeAsText("C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/simpleWindow.txt", FileSystem.WriteMode.OVERWRITE);
-
         keyedStream
                 .timeWindow(Time.seconds(window), Time.seconds(slide))
-                .aggregate(new WinAgg(), new WindowFunc())
-                .writeAsText("C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/aggWindow.txt", FileSystem.WriteMode.OVERWRITE);
+                .process(new ProcessWindowFunction<InputRecord, String, String, TimeWindow>() {
+                    @Override
+                    public void process(String s, Context context, Iterable<InputRecord> iterable, Collector<String> collector) throws Exception {
+                        collector.collect(cfg.queryFunction(cfg.batchUpdate(iterable), context.window().getEnd()));
+                    }
+                })
+                .writeAsText("C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/simpleWindow.txt", FileSystem.WriteMode.OVERWRITE);
+
+//        keyedStream
+//                .timeWindow(Time.seconds(window), Time.seconds(slide))
+//                .aggregate(new WinAgg(), new WindowFunc())
+//                .writeAsText("C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/aggWindow.txt", FileSystem.WriteMode.OVERWRITE);
 
         env.execute();
     }
@@ -372,7 +330,6 @@ public class CustomSlidingWindow {
         @Override
         public void process(String s, Context context, Iterable<Vector> iterable, Collector<String> collector) throws Exception {
             Vector vec = iterable.iterator().next();
-
             collector.collect(cfg.queryFunction(vec, context.window().getEnd()));
         }
     }
