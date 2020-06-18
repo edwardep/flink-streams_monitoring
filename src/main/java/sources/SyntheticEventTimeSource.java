@@ -17,7 +17,7 @@ public class SyntheticEventTimeSource implements SourceFunction<InputRecord> {
     private int count = 0;
 
     private int records = 1000000;
-    private int recordsPerSec = 100;
+    private int recordsPerSec = 1000/100;
     private int keyRandomness = 100;
     private int gap = 5;
     private int groupSize = 4;
@@ -40,7 +40,7 @@ public class SyntheticEventTimeSource implements SourceFunction<InputRecord> {
             // Stop after..
             if(monotonicity > records) cancel();
 
-            long timestampMillis = 5L+(recordsPerSec*monotonicity);
+            long timestampMillis = System.currentTimeMillis()+(recordsPerSec*monotonicity);
             InputRecord event = new InputRecord(
                     String.valueOf(rand2.nextInt(groupSize)), //streamID
                     timestampMillis,
@@ -52,7 +52,7 @@ public class SyntheticEventTimeSource implements SourceFunction<InputRecord> {
             sourceContext.collect(event);
             count++;
 
-            if(count % 10000 == 0) System.out.println("SYN"+count);
+            if(count % 10000 == 0) System.out.println("records produced: "+count);
         }
     }
 

@@ -46,7 +46,7 @@ public class CustomOperator {
     public static class MonitoringOperator<IN, OUT> {
 
         DataStream<IN> source;
-
+        
         public MonitoringOperator<IN, OUT> addSource(DataStream<IN> source){
             this.source = source;
             return this;

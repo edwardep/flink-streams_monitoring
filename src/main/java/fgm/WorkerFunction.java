@@ -11,7 +11,7 @@ import java.io.IOException;
 import java.io.Serializable;
 
 import static datatypes.InternalStream.*;
-
+import static java.lang.Math.max;
 
 
 /**

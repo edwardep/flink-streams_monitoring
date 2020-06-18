@@ -34,9 +34,10 @@ public class DoubleOperators {
 
 
     public static <K> Map<K, Double> vec_add(Map<K, Double> A, Map<K, Double> B) {
+        Map<K, Double> res = new HashMap<>(A);
         for(Map.Entry<K, Double> entry : B.entrySet())
-            A.put(entry.getKey(), A.getOrDefault(entry.getKey(), 0d) + entry.getValue());
-        return A;
+            res.put(entry.getKey(), res.getOrDefault(entry.getKey(), 0d) + entry.getValue());
+        return res;
     }
 
     public static <K> Double norm(Iterable<Map.Entry<K, Double>> iterable) {
@@ -53,19 +54,6 @@ public class DoubleOperators {
         return Math.sqrt(res);
     }
 
-    public static <K> Map<K, Double> normalize(Iterable<Map.Entry<K, Double>> vector) {
-        Map<K, Double> res = new HashMap<>();
-        Double norm = norm(vector);
-        try {
-            for (Map.Entry<K, Double> entry : vector) {
-                res.put(entry.getKey(), divide(entry.getValue(), norm));
-            }
-        } catch (ArithmeticException e) {
-            e.printStackTrace();
-        }
-        return res;
-    }
-
     public static <K> Map<K, Double> normalize(Iterable<Map.Entry<K, Double>> vector, double norm) {
         if(norm == 0)
             throw new ArithmeticException("norm value cannot be 0 when normalizing");
@@ -74,14 +62,6 @@ public class DoubleOperators {
             res.put(entry.getKey(), entry.getValue()/norm);
         return res;
     }
-
-    public static <K> Map<K, Double> normalize(Map<K, Double> vector, double norm) {
-        if(norm == 0)
-            throw new ArithmeticException("norm value cannot be 0 when normalizing");
-        vector.replaceAll((k, v) -> v / norm);
-        return vector;
-    }
-
 
     public static <K> Double dotProduct(Map<K, Double> A,
                                         Map<K, Double> B) {

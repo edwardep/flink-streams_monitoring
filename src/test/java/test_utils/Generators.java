@@ -3,6 +3,7 @@ package test_utils;
 import org.apache.flink.api.java.tuple.Tuple2;
 
 import java.util.HashMap;
+import java.util.Random;
 
 public class Generators {
 
@@ -23,5 +24,12 @@ public class Generators {
         for(int i = 0; i < range; i++)
             map.put(Tuple2.of(i,i), value);
         return map;
+    }
+    public static Double[] uniform_random_vector(int n, double scale, double shift) {
+        Random rand = new Random();
+        Double[] res = new Double[n];
+        for(int j=0; j < n; j++)
+            res[j] =  (scale*rand.nextDouble())+shift;
+        return res;
     }
 }

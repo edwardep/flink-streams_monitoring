@@ -76,7 +76,6 @@ public class CoordinatorFunction<VectorType> {
             state.setSync(false);
 
             System.out.println("Rebalancing Round with lambda = 0.5");
-
             // reset
             lambda = 1.0;
         }
@@ -87,9 +86,12 @@ public class CoordinatorFunction<VectorType> {
                           Collector<InternalStream> collector) throws Exception {
 
         /* Update Global estimate */
-        state.setEstimate(cfg.addVectors(
+
+        VectorType vec = cfg.addVectors(
                 state.getEstimate(),
-                cfg.scaleVector(state.getAggregateState(), 1.0/cfg.getKeyGroupSize())));
+                cfg.scaleVector(state.getAggregateState(), 1.0/cfg.getKeyGroupSize()));
+
+        state.setEstimate(vec);
 
         /* Begin subRounds phase*/
         broadcast_Estimate(state.getEstimate(), collector);
@@ -107,8 +109,7 @@ public class CoordinatorFunction<VectorType> {
         state.setAggregateState(null);
         state.setPsiBeta(0.0);
 
-        rounds++;
-        System.out.println("rounds: "+ rounds);
+        System.out.println("rounds: "+ (++rounds));
     }
 
     /**
@@ -143,6 +144,7 @@ public class CoordinatorFunction<VectorType> {
             {
                 /*  Configuration is SAFE, broadcast new Quantum */
                 Double quantum = -(state.getPsi() + state.getPsiBeta()) / (2 * cfg.getKeyGroupSize());
+
                 broadcast_Quantum(quantum, collector);
 
                 /*  Wait for increment values */
@@ -194,8 +196,7 @@ public class CoordinatorFunction<VectorType> {
             /*  Enable sync and wait for Phi(Xi) values */
             state.setSync(true);
 
-            subRounds++;
-            System.out.println("subRounds: "+subRounds);
+            System.out.println("subRounds: "+ (++subRounds));
         }
     }
 

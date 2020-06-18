@@ -35,7 +35,7 @@ public class MonitoringJob {
 
     public static void main(String[] args) throws Exception {
 
-        int defParallelism = 4; // Flink Parallelism
+        int defParallelism = 1; // Flink Parallelism
         int defWindowSize = 1000; //  the size of the sliding window in seconds
         int defSlideSize = 5; //  the sliding interval in milliseconds
 
@@ -60,7 +60,7 @@ public class MonitoringJob {
          */
         FgmConfig config = new FgmConfig();
         //TestP1Config config = new TestP1Config();
-        //TestP4Config config = new TestP4Config(0.1);
+        //TestP4Config config = new TestP4Config();
 
         /**
          *  Dummy Source to Initialize coordinator
