@@ -1,6 +1,7 @@
 package configurations;
 
 import com.esotericsoftware.kryo.NotNull;
+import fgm.SafeZone;
 import org.apache.commons.rng.UniformRandomProvider;
 import org.apache.commons.rng.simple.RandomSource;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
@@ -83,9 +84,14 @@ public interface BaseConfig<VectorType, RecordType> extends Serializable {
 
     double safeFunction(VectorType drift, VectorType estimate);
 
+    double safeFunction(VectorType drift, VectorType estimate, SafeZone safeZone);
+
     String queryFunction(VectorType estimate, long timestamp);
 
     VectorType batchUpdate(Iterable<RecordType> iterable);
+
+    SafeZone initializeSafeZone(VectorType global);
+
     // compress
 
     // decompress

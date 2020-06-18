@@ -1,7 +1,10 @@
 package operators;
 
 import configurations.BaseConfig;
+import datatypes.Vector;
 import org.apache.flink.api.common.functions.AggregateFunction;
+import org.apache.flink.api.common.typeinfo.TypeInfo;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 
 public class IncAggregation<VectorType, RecordType> implements AggregateFunction<RecordType, VectorType, VectorType> {
 

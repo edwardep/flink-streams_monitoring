@@ -4,6 +4,7 @@ import configurations.BaseConfig;
 import configurations.FgmConfig;
 import datatypes.InputRecord;
 import datatypes.Vector;
+import operators.IncAggregation;
 import org.apache.flink.api.common.functions.AggregateFunction;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.core.fs.FileSystem;
@@ -50,9 +51,10 @@ public class Validation {
                 })
                 .keyBy(k->"0");
 
+        IncAggregation<Vector, InputRecord> aggregation = new IncAggregation<>(cfg);
         keyedStream
                 .timeWindow(Time.seconds(window), Time.seconds(slide))
-                .aggregate(new WindowAgg(), new WindowFunc(cfg))
+                .aggregate(aggregation, new WindowFunc(cfg))
                 .writeAsText("C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/validation_1000.txt", FileSystem.WriteMode.OVERWRITE);
 
 

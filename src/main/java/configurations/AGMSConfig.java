@@ -1,6 +1,7 @@
 package configurations;
 
 import datatypes.InputRecord;
+import fgm.SafeZone;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import sketches.AGMSSketch;
 import sketches.SelfJoinAGMS;
@@ -10,6 +11,9 @@ import utils.SketchOperators;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import static utils.SketchMath.add;
+import static utils.SketchOperators.median;
 
 public class AGMSConfig implements BaseConfig<AGMSSketch, InputRecord> {
 
@@ -44,7 +48,7 @@ public class AGMSConfig implements BaseConfig<AGMSSketch, InputRecord> {
 
     @Override
     public AGMSSketch addVectors(AGMSSketch vector1, AGMSSketch vector2) {
-        return SketchMath.add(vector1, vector2);
+        return add(vector1, vector2);
     }
 
     @Override
@@ -64,6 +68,12 @@ public class AGMSConfig implements BaseConfig<AGMSSketch, InputRecord> {
     }
 
     @Override
+    public double safeFunction(AGMSSketch drift, AGMSSketch estimate, SafeZone safeZone) {
+        AGMSSketch XE = add(drift, estimate);
+        return ((SelfJoinAGMS) safeZone).inf(XE.values());
+    }
+
+    @Override
     public String queryFunction(AGMSSketch estimate, long timestamp) {
         return timestamp+","+SketchOperators.median(estimate.values());
     }
@@ -71,5 +81,12 @@ public class AGMSConfig implements BaseConfig<AGMSSketch, InputRecord> {
     @Override
     public AGMSSketch batchUpdate(Iterable<InputRecord> iterable) {
         return null;
+    }
+
+    @Override
+    public SafeZone initializeSafeZone(AGMSSketch E) {
+        double e = 0.1;
+        double med = median(E.values());
+        return new SelfJoinAGMS(E.values(), (1-e)*med, (1+e)*med, true);
     }
 }

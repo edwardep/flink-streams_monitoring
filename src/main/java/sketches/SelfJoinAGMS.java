@@ -1,13 +1,14 @@
 package sketches;
 
+import fgm.SafeZone;
 import java.util.Arrays;
 
 import static java.lang.Math.min;
 import static utils.SketchOperators.*;
 
-public class SelfJoinAGMS {
+public class SelfJoinAGMS extends SafeZone {
 
-    public static class SelfJoin_upperBound {
+    static class SelfJoin_upperBound {
         private Double[] sqrt_T;
         private SafezoneQuorum sz;
 
@@ -18,7 +19,7 @@ public class SelfJoinAGMS {
          * @param T The threshold value
          * @param eikonal The eikonality flag
          */
-        public SelfJoin_upperBound(Double[][] E, double T, boolean eikonal) {
+        SelfJoin_upperBound(Double[][] E, double T, boolean eikonal) {
             this.sqrt_T = new Double[E.length];
             Arrays.fill(this.sqrt_T, Math.sqrt(T));
 
@@ -26,14 +27,14 @@ public class SelfJoinAGMS {
             sz = new SafezoneQuorum(dest, (E.length+1)/2, eikonal);
         }
 
-        public double median(Double[][] X) {
+        double median(Double[][] X) {
             Double[] z = subtract(sqrt_T, normRow(X));
             return sz.median(z);
         }
 
     }
 
-    public static class SelfJoin_lowerBound {
+    static class SelfJoin_lowerBound {
 
         private Double[] sqrt_T;
         private Double[][] E;
@@ -47,7 +48,7 @@ public class SelfJoinAGMS {
          * @param T       The threshold value
          * @param eikonal The eikonality flag
          */
-        public SelfJoin_lowerBound(Double[][] E, double T, boolean eikonal) {
+        SelfJoin_lowerBound(Double[][] E, double T, boolean eikonal) {
             this.sqrt_T = new Double[E.length];
             Arrays.fill(this.sqrt_T, (T > 0.0) ? Math.sqrt(T) : 0.0);
 
@@ -61,7 +62,7 @@ public class SelfJoinAGMS {
             //else the function returns +Infinity
         }
 
-        public double median(Double[][] X) {
+        double median(Double[][] X) {
             if (this.sqrt_T[0] == 0.0) return Double.POSITIVE_INFINITY;
             Double[] z = subtract(dotProduct(X, E), sqrt_T);
             return sz.median(z);
@@ -73,7 +74,13 @@ public class SelfJoinAGMS {
     private SelfJoin_lowerBound lowerBound;     // safezone for sk^2 >= TLow
     private SelfJoin_upperBound upperBound;     // safezone for sk^2 <= THigh
 
-    // Constructor
+    /**
+     * The self-join safezone constructor for AGMS sketches.
+     * @param E The reference vector
+     * @param TLow  Lower threshold
+     * @param THigh Upper threshold
+     * @param eikonal   eikonality flag for computation of zeta
+     */
     public SelfJoinAGMS(Double[][] E, double TLow, double THigh, boolean eikonal) {
         lowerBound = new SelfJoin_lowerBound(E, TLow, eikonal);
         upperBound = new SelfJoin_upperBound(E, THigh, eikonal);

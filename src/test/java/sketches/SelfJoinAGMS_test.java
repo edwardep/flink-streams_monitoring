@@ -124,8 +124,7 @@ public class SelfJoinAGMS_test {
 
             double Emed = median(E.values());
 
-            SelfJoinAGMS sz;
-            sz = new SelfJoinAGMS(E.values(), 0.9*Emed, 1.1*Emed, true);
+            SelfJoinAGMS sz = new SelfJoinAGMS(E.values(), 0.9*Emed, 1.1*Emed, true);
 
 
             assertTrue(0.0 < sz.inf(E.values()));

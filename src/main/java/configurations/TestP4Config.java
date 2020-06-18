@@ -4,6 +4,7 @@ package configurations;
 import configurations.BaseConfig;
 import datatypes.InputRecord;
 import datatypes.Vector;
+import fgm.SafeZone;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 
@@ -90,6 +91,11 @@ public class TestP4Config implements BaseConfig<Vector, InputRecord> {
     }
 
     @Override
+    public double safeFunction(Vector drift, Vector estimate, SafeZone safeZone) {
+        return 0;
+    }
+
+    @Override
     public String queryFunction(Vector estimate, long timestamp) {
         double query = 0d;
         for (Double val : estimate.map().values())
@@ -103,5 +109,10 @@ public class TestP4Config implements BaseConfig<Vector, InputRecord> {
         for (InputRecord record : iterable)
             res.map().put(record.getKey(), res.map().getOrDefault(record.getKey(), 0d) + record.getVal());
         return res;
+    }
+
+    @Override
+    public SafeZone initializeSafeZone(Vector global) {
+        return null;
     }
 }
