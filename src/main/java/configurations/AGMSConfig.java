@@ -1,8 +1,10 @@
 package configurations;
 
 import datatypes.InputRecord;
+import datatypes.Vector;
 import fgm.SafeZone;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.tuple.Tuple2;
 import sketches.AGMSSketch;
 import sketches.SelfJoinAGMS;
 import utils.SketchMath;
@@ -11,15 +13,13 @@ import utils.SketchOperators;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static utils.SketchMath.add;
+import static utils.SketchMath.scale;
 import static utils.SketchOperators.median;
 
-public class AGMSConfig implements BaseConfig<AGMSSketch, InputRecord> {
-
-
-    private List<String> keyGroup = new ArrayList<>(Arrays.asList("99", "98", "66", "67", "0", "2", "64", "33", "1", "4",
-            "71", "73", "5", "72", "68", "65", "3", "38", "34", "37", "69", "36", "35", "40", "39", "70"));
+public class AGMSConfig implements BaseConfig<Vector, AGMSSketch, InputRecord> {
 
     @Override
     public TypeInformation<AGMSSketch> getVectorType() {
@@ -27,13 +27,8 @@ public class AGMSConfig implements BaseConfig<AGMSSketch, InputRecord> {
     }
 
     @Override
-    public List<String> getKeyGroup() {
-        return keyGroup;
-    }
-
-    @Override
-    public Integer getKeyGroupSize() {
-        return keyGroup.size();
+    public Integer uniqueStreams() {
+        return 10;
     }
 
     @Override
@@ -42,8 +37,32 @@ public class AGMSConfig implements BaseConfig<AGMSSketch, InputRecord> {
     }
 
     @Override
-    public AGMSSketch addRecord(InputRecord record, AGMSSketch vector) {
-        return null;
+    public Vector newAccInstance() {
+        return new Vector();
+    }
+
+    @Override
+    public Vector aggregateRecord(InputRecord record, Vector vector) {
+        vector.map().put(record.getKey(), vector.getValue(record.getKey()) + record.getVal());
+        return vector;
+    }
+
+    @Override
+    public Vector subtractAccumulators(Vector acc1, Vector acc2) {
+        Vector res = new Vector(acc1.map());
+        for(Tuple2<Integer,Integer> key : acc2.map().keySet())
+            res.map().put(key, res.getValue(key) - acc2.getValue(key));
+        return res;
+    }
+
+    @Override
+    public AGMSSketch updateVector(Vector accumulator, AGMSSketch vector) {
+        for (Map.Entry<Tuple2<Integer,Integer>, Double> entry : accumulator.map().entrySet()) {
+            Tuple2<Integer, Integer> raw_key = entry.getKey();
+            long key = raw_key.f0 * 10 + raw_key.f1;
+            vector.update(key, entry.getValue());
+        }
+        return vector;
     }
 
     @Override
@@ -52,13 +71,8 @@ public class AGMSConfig implements BaseConfig<AGMSSketch, InputRecord> {
     }
 
     @Override
-    public AGMSSketch subtractVectors(AGMSSketch vector1, AGMSSketch vector2) {
-        return SketchMath.subtract(vector1, vector2);
-    }
-
-    @Override
     public AGMSSketch scaleVector(AGMSSketch vector, Double scalar) {
-        return SketchMath.scale(vector, scalar);
+        return scale(vector, scalar);
     }
 
     @Override
@@ -76,11 +90,6 @@ public class AGMSConfig implements BaseConfig<AGMSSketch, InputRecord> {
     @Override
     public String queryFunction(AGMSSketch estimate, long timestamp) {
         return timestamp+","+SketchOperators.median(estimate.values());
-    }
-
-    @Override
-    public AGMSSketch batchUpdate(Iterable<InputRecord> iterable) {
-        return null;
     }
 
     @Override

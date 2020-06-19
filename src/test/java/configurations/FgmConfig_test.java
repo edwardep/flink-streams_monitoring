@@ -32,7 +32,7 @@ public class FgmConfig_test {
 
         Vector vec1 = new Vector(generateSequence(10, 5.0));
         Vector vec2 = new Vector(generateSequence(10, 3.0));
-        Vector res = cfg.subtractVectors(vec1, vec2);
+        Vector res = cfg.subtractAccumulators(vec1, vec2);
 
         assertEquals(new Vector(generateSequence(10, 2.0)), res);
     }
@@ -51,21 +51,6 @@ public class FgmConfig_test {
     public void typeInfo_test() {
         FgmConfig cfg = new FgmConfig();
         assertEquals(TypeInformation.of(Vector.class), cfg.getVectorType());
-    }
-
-    @Test
-    public void batchUpdate_test() {
-        FgmConfig cfg = new FgmConfig();
-
-        List<InputRecord> list =  new ArrayList<>();
-        list.add(new InputRecord("0", 0L, Tuple2.of(0,0), 1.0));
-        list.add(new InputRecord("0", 0L, Tuple2.of(1,1), 1.0));
-        list.add(new InputRecord("0", 0L, Tuple2.of(2,2), 1.0));
-        list.add(new InputRecord("0", 0L, Tuple2.of(3,3), 1.0));
-
-        Vector res = cfg.batchUpdate(list);
-
-        assertEquals(new Vector(generateSequence(4, 1.0)), res);
     }
 
     @Test

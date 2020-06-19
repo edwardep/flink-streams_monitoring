@@ -3,7 +3,6 @@ package fgm;
 
 import configurations.BaseConfig;
 import datatypes.InternalStream;
-import datatypes.Vector;
 import org.apache.flink.streaming.api.functions.co.CoProcessFunction;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
@@ -22,7 +21,7 @@ import static jobs.MonitoringJob.Q_estimate;
 public class CoordinatorFunction<VectorType> {
     private transient static Logger LOG = LoggerFactory.getLogger(CoordinatorFunction.class);
 
-    private BaseConfig<VectorType, ?> cfg;
+    private BaseConfig<?, VectorType, ?> cfg;
     private long rounds = 0;
     private int subRounds = 0;
 
@@ -33,7 +32,7 @@ public class CoordinatorFunction<VectorType> {
 
     private long lastTs = Long.MIN_VALUE;
 
-    public CoordinatorFunction(BaseConfig<VectorType, ?> cfg){
+    public CoordinatorFunction(BaseConfig<?, VectorType, ?> cfg){
         this.cfg = cfg;
     }
 
@@ -45,7 +44,7 @@ public class CoordinatorFunction<VectorType> {
                             CoProcessFunction.Context ctx,
                             Collector<InternalStream> collector) throws Exception {
 
-        if(state.getNodeCount() < cfg.getKeyGroupSize())
+        if(state.getNodeCount() < cfg.uniqueStreams())
         {
             state.setNodeCount(state.getNodeCount() + 1);
 
@@ -57,7 +56,7 @@ public class CoordinatorFunction<VectorType> {
         }
 
         /*  Received all */
-        if(state.getNodeCount().equals(cfg.getKeyGroupSize()))
+        if(state.getNodeCount().equals(cfg.uniqueStreams()))
         {
             state.setNodeCount(0);
 
@@ -89,9 +88,10 @@ public class CoordinatorFunction<VectorType> {
 
         VectorType vec = cfg.addVectors(
                 state.getEstimate(),
-                cfg.scaleVector(state.getAggregateState(), 1.0/cfg.getKeyGroupSize()));
+                cfg.scaleVector(state.getAggregateState(), 1.0/cfg.uniqueStreams()));
 
         state.setEstimate(vec);
+        state.setSafeZone(cfg.initializeSafeZone(vec));
 
         /* Begin subRounds phase*/
         broadcast_Estimate(state.getEstimate(), collector);
@@ -127,23 +127,26 @@ public class CoordinatorFunction<VectorType> {
                            Collector<InternalStream> collector) throws Exception {
 
         /*  Aggregate the incoming Phi(Xi) values to Psi */
-        if(state.getNodeCount() < cfg.getKeyGroupSize())
+        if(state.getNodeCount() < cfg.uniqueStreams())
         {
             state.setNodeCount(state.getNodeCount() + 1);
             state.setPsi(state.getPsi() + payload);
         }
 
         /*  Received all */
-        if(state.getNodeCount().equals(cfg.getKeyGroupSize()))
+        if(state.getNodeCount().equals(cfg.uniqueStreams()))
         {
             state.setNodeCount(0);
 
-            double safeThreshold = cfg.getMQF()*cfg.getKeyGroupSize()*cfg.safeFunction(null, state.getEstimate());
+            double safeThreshold = cfg.getMQF()*cfg.uniqueStreams()*cfg.safeFunction(
+                    cfg.newInstance(),
+                    state.getEstimate(),
+                    state.getSafeZone());
 
             if(state.getPsi() + state.getPsiBeta() <= safeThreshold)
             {
                 /*  Configuration is SAFE, broadcast new Quantum */
-                Double quantum = -(state.getPsi() + state.getPsiBeta()) / (2 * cfg.getKeyGroupSize());
+                Double quantum = -(state.getPsi() + state.getPsiBeta()) / (2 * cfg.uniqueStreams());
 
                 broadcast_Quantum(quantum, collector);
 
@@ -186,7 +189,7 @@ public class CoordinatorFunction<VectorType> {
         state.setGlobalCounter(state.getGlobalCounter() + payload);
 
         /*  If C > k : finish subRound */
-        if(state.getGlobalCounter() > cfg.getKeyGroupSize()) {
+        if(state.getGlobalCounter() > cfg.uniqueStreams()) {
 
             broadcast_RequestZeta(collector);
 
@@ -206,31 +209,31 @@ public class CoordinatorFunction<VectorType> {
      *
      */
     private void broadcast_Estimate(VectorType vector, Collector<InternalStream> collector) {
-        for (String key : cfg.getKeyGroup())
-            collector.collect(upstreamGlobalEstimate(key, vector));
+        for (int key = 0; key < cfg.uniqueStreams(); key++)
+            collector.collect(upstreamGlobalEstimate(String.valueOf(key), vector));
     }
     public void broadcast_RequestDrift(Collector<InternalStream> collector) {
-        for (String key : cfg.getKeyGroup())
-            collector.collect(upstreamRequestDrift(key));
+        for (int key = 0; key < cfg.uniqueStreams(); key++)
+            collector.collect(upstreamRequestDrift(String.valueOf(key)));
     }
     private void broadcast_RequestZeta(Collector<InternalStream> collector) {
-        for (String key : cfg.getKeyGroup())
-            collector.collect(upstreamRequestZeta(key));
+        for (int key = 0; key < cfg.uniqueStreams(); key++)
+            collector.collect(upstreamRequestZeta(String.valueOf(key)));
     }
     private void broadcast_Quantum(Double quantum, Collector<InternalStream> collector) {
-        for (String key : cfg.getKeyGroup())
-            collector.collect(upstreamQuantum(key, quantum));
+        for (int key = 0; key < cfg.uniqueStreams(); key++)
+            collector.collect(upstreamQuantum(String.valueOf(key), quantum));
     }
     private void broadcast_Lambda(Double lambda, Collector<InternalStream> collector) {
-        for (String key : cfg.getKeyGroup())
-            collector.collect(upstreamLambda(key, lambda));
+        for (int key = 0; key < cfg.uniqueStreams(); key++)
+            collector.collect(upstreamLambda(String.valueOf(key), lambda));
     }
 
     // Psi_beta = (1 - lambda) * k * phi(BalanceVector / ((1 - lambda) * k))
     private void updatePsiBeta(CoordinatorStateHandler<VectorType> state) throws Exception {
         state.setPsiBeta(
-                (1-lambda)*cfg.getKeyGroupSize()*cfg.safeFunction(
-                        cfg.scaleVector(state.getAggregateState(), 1/((1-lambda)*cfg.getKeyGroupSize())),
-                        state.getEstimate()));
+                (1-lambda)*cfg.uniqueStreams()*cfg.safeFunction(
+                        cfg.scaleVector(state.getAggregateState(), 1/((1-lambda)*cfg.uniqueStreams())),
+                        state.getEstimate(), state.getSafeZone()));
     }
 }

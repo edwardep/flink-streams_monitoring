@@ -12,7 +12,7 @@ import java.util.List;
 
 import static utils.DoubleOperators.*;
 
-public class FgmConfig implements BaseConfig<Vector, InputRecord> {
+public class FgmConfig implements BaseConfig<Vector, Vector, InputRecord> {
 
     private List<String> keyGroup = new ArrayList<>(Arrays.asList("99", "98", "66", "67", "0", "2", "64", "33", "1", "4",
             "71", "73", "5", "72", "68", "65", "3", "38", "34", "37", "69", "36", "35", "40", "39", "70"));
@@ -23,12 +23,7 @@ public class FgmConfig implements BaseConfig<Vector, InputRecord> {
     }
 
     @Override
-    public List<String> getKeyGroup() {
-        return keyGroup;
-    }
-
-    @Override
-    public Integer getKeyGroupSize() {
+    public Integer uniqueStreams() {
         return keyGroup.size();
     }
 
@@ -38,7 +33,12 @@ public class FgmConfig implements BaseConfig<Vector, InputRecord> {
     }
 
     @Override
-    public Vector addRecord(InputRecord record, Vector vector) {
+    public Vector newAccInstance() {
+        return new Vector();
+    }
+
+    @Override
+    public Vector aggregateRecord(InputRecord record, Vector vector) {
         vector.map().put(record.getKey(), vector.getValue(record.getKey()) + record.getVal());
         return vector;
     }
@@ -60,11 +60,17 @@ public class FgmConfig implements BaseConfig<Vector, InputRecord> {
     }
 
     @Override
-    public Vector subtractVectors(Vector vector1, Vector vector2) {
-        Vector res = new Vector(vector1.map());
-        for(Tuple2<Integer, Integer> key : vector2.map().keySet())
-            res.map().put(key, res.getValue(key) - vector2.getValue(key));
+    public Vector subtractAccumulators(Vector acc1, Vector acc2) {
+        Vector res = new Vector(acc1.map());
+        for(Tuple2<Integer, Integer> key : acc2.map().keySet())
+            res.map().put(key, res.getValue(key) - acc2.getValue(key));
         return res;
+    }
+
+    //BATCH UPDATE not implemented
+    @Override
+    public Vector updateVector(Vector accumulator, Vector vector) {
+        return null;
     }
 
     @Override
@@ -98,14 +104,6 @@ public class FgmConfig implements BaseConfig<Vector, InputRecord> {
         for(Double val : estimate.map().values())
             query += val*val;
         return (timestamp+1) + "," + query;
-    }
-
-    @Override
-    public Vector batchUpdate(Iterable<InputRecord> iterable) {
-        Vector res = new Vector();
-        for(InputRecord record : iterable)
-            res.map().put(record.getKey(), res.map().getOrDefault(record.getKey(), 0d) + record.getVal());
-        return res;
     }
 
     @Override

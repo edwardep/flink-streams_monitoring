@@ -14,19 +14,14 @@ import java.util.List;
 import static utils.DoubleOperators.*;
 import static utils.DoubleOperators.normalize;
 
-public class TestP1Config implements BaseConfig<Vector, InputRecord> {
+public class TestP1Config implements BaseConfig<Vector, Vector, InputRecord> {
     @Override
     public TypeInformation<Vector> getVectorType() {
         return TypeInformation.of(Vector.class);
     }
 
     @Override
-    public List<String> getKeyGroup() {
-        return new ArrayList<>(Collections.singletonList("0"));
-    }
-
-    @Override
-    public Integer getKeyGroupSize() {
+    public Integer uniqueStreams() {
         return 1;
     }
 
@@ -36,7 +31,12 @@ public class TestP1Config implements BaseConfig<Vector, InputRecord> {
     }
 
     @Override
-    public Vector addRecord(InputRecord record, Vector vector) {
+    public Vector newAccInstance() {
+        return new Vector();
+    }
+
+    @Override
+    public Vector aggregateRecord(InputRecord record, Vector vector) {
         vector.map().put(record.getKey(), vector.getValue(record.getKey()) + record.getVal());
         return vector;
     }
@@ -58,11 +58,16 @@ public class TestP1Config implements BaseConfig<Vector, InputRecord> {
     }
 
     @Override
-    public Vector subtractVectors(Vector vector1, Vector vector2) {
-        Vector res = new Vector(vector1.map());
-        for(Tuple2<Integer, Integer> key : vector2.map().keySet())
-            res.map().put(key, res.getValue(key) - vector2.getValue(key));
+    public Vector subtractAccumulators(Vector acc1, Vector acc2) {
+        Vector res = new Vector(acc1.map());
+        for(Tuple2<Integer, Integer> key : acc2.map().keySet())
+            res.map().put(key, res.getValue(key) - acc2.getValue(key));
         return res;
+    }
+
+    @Override
+    public Vector updateVector(Vector accumulator, Vector vector) {
+        return null;
     }
 
     @Override
@@ -97,13 +102,6 @@ public class TestP1Config implements BaseConfig<Vector, InputRecord> {
         return timestamp + "," + query;
     }
 
-    @Override
-    public Vector batchUpdate(Iterable<InputRecord> iterable) {
-        Vector res = new Vector();
-        for(InputRecord record : iterable)
-            res.map().put(record.getKey(), res.map().getOrDefault(record.getKey(), 0d) + record.getVal());
-        return res;
-    }
 
     @Override
     public SafeZone initializeSafeZone(Vector global) {

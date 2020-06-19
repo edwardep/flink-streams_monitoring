@@ -18,15 +18,15 @@ public class CoordinatorProcessFunction<VectorType> extends CoProcessFunction<In
 
     private CoordinatorStateHandler<VectorType> state;
     private CoordinatorFunction<VectorType> fgm;
-    private BaseConfig<VectorType, ?> cfg;
+    private BaseConfig<?, VectorType, ?> cfg;
 
-    public CoordinatorProcessFunction(BaseConfig<VectorType, ?> cfg) {
+    public CoordinatorProcessFunction(BaseConfig<?, VectorType, ?> cfg) {
         this.cfg = cfg;
     }
 
     @Override
     public void processElement1(InternalStream input, Context ctx, Collector<InternalStream> collector) throws Exception {
-        //System.out.println(input.toString());
+        System.out.println(input.toString());
         switch(input.getType()) {
             case DRIFT:
                 fgm.handleDrift(state, input, ctx, collector);

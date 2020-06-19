@@ -26,7 +26,7 @@ public abstract class StateHandler<VectorType> {
      *
      * @param conf The FGM configuration class
      */
-    public abstract void init(BaseConfig<VectorType, ?> conf);
+    public abstract void init(BaseConfig<?, VectorType, ?> conf);
 
     <V> ValueState<V> createState(String name, TypeInformation<V> type) {
         return runtimeContext

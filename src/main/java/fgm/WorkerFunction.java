@@ -17,19 +17,18 @@ import static java.lang.Math.max;
 /**
  * The WorkerFunction class contains all the required FGM Worker Node methods.
  */
-public class WorkerFunction<VectorType> implements Serializable {
+public class WorkerFunction<AccType, VectorType> implements Serializable {
     private transient static Logger LOG = LoggerFactory.getLogger(WorkerFunction.class);
 
-    private BaseConfig<VectorType, ?> cfg;
-    public WorkerFunction(BaseConfig<VectorType, ?> cfg) { this.cfg = cfg; }
+    private BaseConfig<AccType, VectorType, ?> cfg;
+    public WorkerFunction(BaseConfig<AccType, VectorType, ?> cfg) { this.cfg = cfg; }
 
 
     /**
      * The second argument (input) might change from RecordType to VectorType when SlidingWindow gets implemented.
      */
-    public void updateDrift(WorkerStateHandler<VectorType> state, VectorType input) throws Exception {
-        state.setDrift(cfg.subtractVectors(input, state.getLastState()));
-        state.setCurrentState(input);
+    public void updateDrift(WorkerStateHandler<VectorType> state, AccType input) throws Exception {
+        state.setDrift(cfg.updateVector(input, state.getDrift()));
     }
 
 
@@ -44,10 +43,11 @@ public class WorkerFunction<VectorType> implements Serializable {
                          VectorType vector) throws Exception {
 
         state.setEstimate(vector);
+        state.setSafeZone(cfg.initializeSafeZone(vector));
 
         state.setLambda(1.0);
 
-        double fi0 = cfg.safeFunction(null, state.getEstimate());
+        double fi0 = cfg.safeFunction(cfg.newInstance(), state.getEstimate(), state.getSafeZone());
 
         state.setLastZeta(fi0);
 
@@ -70,7 +70,6 @@ public class WorkerFunction<VectorType> implements Serializable {
         // Send Drift Vector to the Coordinator
         out.collect(downstreamDrift(state.getLastTs(), state.getDrift()));
 
-        state.setLastState(state.getCurrentState());
         // Clear the drift vector
         state.setDrift(null);
     }
@@ -148,7 +147,8 @@ public class WorkerFunction<VectorType> implements Serializable {
         state.setFi(
                 state.getLambda() * cfg.safeFunction(
                         cfg.scaleVector(state.getDrift(),1/state.getLambda()),
-                        state.getEstimate()));
+                        state.getEstimate(),
+                        state.getSafeZone()));
 
         /*  Compute new local Counter and get the increment */
         int old_counter = state.getLocalCounter();
@@ -169,7 +169,7 @@ public class WorkerFunction<VectorType> implements Serializable {
         state.setLambda(payload);
 
         // Compute the quantum value
-        double fi0 = state.getLambda() * cfg.safeFunction(null, state.getEstimate());
+        double fi0 = state.getLambda() * cfg.safeFunction(cfg.newInstance(), state.getEstimate(), state.getSafeZone());
         state.setLastZeta(fi0);
         state.setQuantum(-fi0/2);
 

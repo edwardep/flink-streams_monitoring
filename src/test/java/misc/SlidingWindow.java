@@ -1,15 +1,13 @@
 package misc;
 
-import configurations.FgmConfig;
 import configurations.TestP1Config;
+import datatypes.Accumulator;
 import datatypes.InputRecord;
 import datatypes.InternalStream;
 import datatypes.Vector;
 import operators.IncAggregation;
-import operators.IncAggregation_def;
 import operators.WindowFunction;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
@@ -23,8 +21,6 @@ import sources.SyntheticEventTimeSource;
 
 import test_utils.Testable;
 
-import static junit.framework.TestCase.*;
-
 
 public class SlidingWindow {
 
@@ -34,14 +30,13 @@ public class SlidingWindow {
 
         env.setParallelism(1);
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
-
+        String defInputPath = "D:/Documents/WorldCup_tools/ita_public_tools/output/wc_day46_1.txt";
         int slide = 5;
         int window = 1000;
 
         TestP1Config cfg = new TestP1Config();
 
         KeyedStream<InputRecord, String> keyedStream = env
-                //.addSource(new SyntheticEventTimeSource())
                 .addSource(new SyntheticEventTimeSource())
                 .map(x -> x)
                 .returns(TypeInformation.of(InputRecord.class))
@@ -53,41 +48,22 @@ public class SlidingWindow {
                 })
                 .keyBy(k->"0");
 
-        DataStream<InternalStream> windowedStream = keyedStream
+        DataStream<Accumulator<Vector>> windowedStream = keyedStream
                 .timeWindow(Time.seconds(window), Time.seconds(slide))
-                .aggregate(new IncAggregation_def(cfg), new WindowFunction<>());
+                .aggregate(new IncAggregation<>(cfg), new WindowFunction<>(cfg));
 
         windowedStream
-                .process(new ProcessFunction<InternalStream, String>() {
+                .process(new ProcessFunction<Accumulator<Vector>, String>() {
                     @Override
-                    public void processElement(InternalStream internalStream, Context context, Collector<String> collector) throws Exception {
-                        collector.collect(cfg.queryFunction((Vector) internalStream.getVector(), context.timestamp()));
+                    public void processElement(Accumulator<Vector> internalStream, Context context, Collector<String> collector) throws Exception {
+                        collector.collect(cfg.queryFunction(internalStream.getVec(), context.timestamp()));
                     }
                 }).addSink(new Testable.WindowValidationSink1());
 
-        windowedStream
-                .process(new ProcessFunction<InternalStream, String>() {
-                    Vector previous = new Vector();
-                    Vector drift = new Vector();
-                    @Override
-                    public void processElement(InternalStream internalStream, Context context, Collector<String> collector) throws Exception {
-                        long start1 = System.currentTimeMillis();
-                        Vector current = new Vector(((Vector)internalStream.getVector()).map());
-                        drift = cfg.addVectors(cfg.subtractVectors(current, previous), drift);
-                        collector.collect(cfg.queryFunction(drift,context.timestamp()));
-                        previous.map().putAll(current.map());
-                        long time = System.currentTimeMillis() - start1;
-                        if(time > 5) System.out.println("time: "+time);
-                    }
-                }).addSink(new Testable.WindowValidationSink2());
-
         env.execute();
 
-        int size1 = Testable.WindowValidationSink1.result1.size();
-        int size2 = Testable.WindowValidationSink2.result2.size();
-        assert size1 == size2;
-        for(int i = 0; i < size1; i++)
-            assertEquals("at"+i+" out of "+size1, Testable.WindowValidationSink1.result1.get(i),Testable.WindowValidationSink2.result2.get(i));
+        for(String str : Testable.WindowValidationSink1.result1)
+            System.out.println(str);
     }
 
 }

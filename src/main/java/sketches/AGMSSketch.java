@@ -2,7 +2,7 @@ package sketches;
 
 import java.util.Arrays;
 
-import static configurations.BaseConfig.seedVector;
+import static utils.SketchMath.seedVector;
 
 public class AGMSSketch {
     private Double[][] sketchVector;

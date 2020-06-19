@@ -1,33 +1,33 @@
 package operators;
 
 import configurations.BaseConfig;
-import datatypes.Vector;
+import datatypes.Accumulator;
 import org.apache.flink.api.common.functions.AggregateFunction;
-import org.apache.flink.api.common.typeinfo.TypeInfo;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
 
-public class IncAggregation<VectorType, RecordType> implements AggregateFunction<RecordType, VectorType, VectorType> {
+public class IncAggregation<AccType, RecordType> implements AggregateFunction<RecordType, Accumulator<AccType>, Accumulator<AccType>> {
 
-    private BaseConfig<VectorType, RecordType> cfg;
-    public IncAggregation(BaseConfig<VectorType, RecordType> cfg) { this.cfg = cfg; }
+    private BaseConfig<AccType, ?, RecordType> cfg;
+    public IncAggregation(BaseConfig<AccType, ?, RecordType> cfg) { this.cfg = cfg; }
+
 
     @Override
-    public VectorType createAccumulator() {
-        return cfg.newInstance();
+    public Accumulator<AccType> createAccumulator() {
+        return new Accumulator<>(cfg.newAccInstance());
     }
 
     @Override
-    public VectorType add(RecordType inputRecord, VectorType vector) {
-        return cfg.addRecord(inputRecord, vector);
+    public Accumulator<AccType> add(RecordType input, Accumulator<AccType> accumulator) {
+        accumulator.setVec(cfg.aggregateRecord(input, accumulator.getVec()));
+        return accumulator;
     }
 
     @Override
-    public VectorType getResult(VectorType vector) {
-        return vector;
+    public Accumulator<AccType> getResult(Accumulator<AccType> accumulator) {
+        return accumulator;
     }
 
     @Override
-    public VectorType merge(VectorType vectorType, VectorType acc1) {
+    public Accumulator<AccType> merge(Accumulator<AccType> acc1, Accumulator<AccType> acc2) {
         return null;
     }
 }
