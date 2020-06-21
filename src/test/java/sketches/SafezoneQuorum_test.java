@@ -7,8 +7,8 @@ import java.util.Random;
 
 import static junit.framework.TestCase.assertEquals;
 import static test_utils.Generators.uniform_random_vector;
-import static utils.SketchOperators.multiply;
-import static utils.SketchOperators.norm;
+import static sketches.SketchMath.multiply;
+import static sketches.SketchMath.norm;
 
 public class SafezoneQuorum_test {
     /**

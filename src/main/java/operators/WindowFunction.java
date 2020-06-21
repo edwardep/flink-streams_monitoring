@@ -14,7 +14,6 @@ import org.apache.flink.util.Collector;
 import java.io.IOException;
 import java.util.UUID;
 
-import static datatypes.InternalStream.windowSlide;
 
 public class WindowFunction<AccType> extends ProcessWindowFunction<Accumulator<AccType>, Accumulator<AccType>, String, TimeWindow> {
     private String UID = UUID.randomUUID().toString();

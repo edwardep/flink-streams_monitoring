@@ -53,7 +53,7 @@ public class Validation {
         keyedStream
                 .timeWindow(Time.seconds(window), Time.seconds(slide))
                 .aggregate(new IncAggregationDef(cfg), new WindowFunctionDef(cfg))
-                .writeAsText("C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/validation_1h.txt", FileSystem.WriteMode.OVERWRITE);
+                .writeAsText("C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/validation_test.txt", FileSystem.WriteMode.OVERWRITE);
 
 
 
@@ -71,6 +71,7 @@ public class Validation {
         public void process(String key, Context ctx, Iterable<Vector> iterable, Collector<String> out) throws IOException {
             if(iterable.iterator().hasNext()){
                 Vector vec = iterable.iterator().next();
+                System.out.println("size:"+vec.map().size());
                 out.collect(cfg.queryFunction(cfg.scaleVector(vec, 1.0/cfg.uniqueStreams()),ctx.window().getEnd()));
             }
         }

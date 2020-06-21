@@ -1,5 +1,6 @@
 package jobs;
 
+import configurations.AGMSConfig;
 import configurations.FgmConfig;
 import configurations.TestP1Config;
 import configurations.TestP4Config;
@@ -22,6 +23,7 @@ import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
+import sketches.AGMSSketch;
 import sources.SyntheticEventTimeSource;
 import sources.WorldCupSource;
 
@@ -36,7 +38,7 @@ public class MonitoringJob {
 
     public static void main(String[] args) throws Exception {
 
-        int defParallelism = 4; // Flink Parallelism
+        int defParallelism = 1; // Flink Parallelism
         int defWindowSize = 3600; //  the size of the sliding window in seconds
         int defSlideSize = 5; //  the sliding interval in milliseconds
 
@@ -59,9 +61,10 @@ public class MonitoringJob {
         /**
          *  The FGM configuration class. (User-implemented functions)
          */
-        FgmConfig config = new FgmConfig();
+        //FgmConfig config = new FgmConfig();
         //TestP1Config config = new TestP1Config();
         //TestP4Config config = new TestP4Config();
+        AGMSConfig config = new AGMSConfig();
 
         /**
          *  Dummy Source to Initialize coordinator

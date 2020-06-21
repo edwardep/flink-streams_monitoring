@@ -52,7 +52,7 @@ public class WorkerFunction<AccType, VectorType> implements Serializable {
         state.setLastZeta(fi0);
 
         // Compute the quantum value
-        state.setQuantum(-fi0/2);
+        state.setQuantum(fi0/2);
         assert state.getQuantum() > 0d;
 
         // Start SubRound phase
@@ -152,7 +152,7 @@ public class WorkerFunction<AccType, VectorType> implements Serializable {
 
         /*  Compute new local Counter and get the increment */
         int old_counter = state.getLocalCounter();
-        int new_counter = (int) ((state.getFi() - state.getZeta()) / state.getQuantum());
+        int new_counter = (int) ((state.getZeta() - state.getFi()) / state.getQuantum());
         int increment = new_counter - old_counter;
 
         /*  IF Ci has increased, send the increment and save the new_counter */
@@ -171,7 +171,7 @@ public class WorkerFunction<AccType, VectorType> implements Serializable {
         // Compute the quantum value
         double fi0 = state.getLambda() * cfg.safeFunction(cfg.newInstance(), state.getEstimate(), state.getSafeZone());
         state.setLastZeta(fi0);
-        state.setQuantum(-fi0/2);
+        state.setQuantum(fi0/2);
 
         // begin subRound phase
         state.setSubRoundPhase(true);

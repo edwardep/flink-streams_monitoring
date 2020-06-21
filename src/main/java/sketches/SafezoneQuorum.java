@@ -2,7 +2,9 @@ package sketches;
 
 
 import java.util.Arrays;
-import static utils.SketchOperators.multiply;
+
+import static sketches.SketchMath.multiply;
+
 
 /**
  Safezone for boolean quorum queries.

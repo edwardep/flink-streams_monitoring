@@ -7,17 +7,11 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
 import sketches.AGMSSketch;
 import sketches.SelfJoinAGMS;
-import utils.SketchMath;
-import utils.SketchOperators;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 
-import static utils.SketchMath.add;
-import static utils.SketchMath.scale;
-import static utils.SketchOperators.median;
+import static sketches.SketchMath.*;
+
 
 public class AGMSConfig implements BaseConfig<Vector, AGMSSketch, InputRecord> {
 
@@ -89,7 +83,7 @@ public class AGMSConfig implements BaseConfig<Vector, AGMSSketch, InputRecord> {
 
     @Override
     public String queryFunction(AGMSSketch estimate, long timestamp) {
-        return timestamp+","+SketchOperators.median(estimate.values());
+        return timestamp+","+median(estimate.values());
     }
 
     @Override

@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static java.lang.Math.sqrt;
-import static utils.SketchOperators.*;
+import static sketches.SketchMath.*;
 
 public class TwoWayJoinAGMS {
 
@@ -97,7 +97,7 @@ public class TwoWayJoinAGMS {
         // Polarize the reference vector
         Double[] s1 = Arrays.copyOfRange(E, 0, D);
         Double[] s2 = Arrays.copyOfRange(E, D, 2*D);
-        lower.hat = sum(s1, s2);
+        lower.hat = add(s1, s2);
         upper.hat = subtract(s1, s2);
 
 
@@ -115,7 +115,7 @@ public class TwoWayJoinAGMS {
         Double[] s1 = Arrays.copyOfRange(X, 0, D);
         Double[] s2 = Arrays.copyOfRange(X, D, 2*D);
 
-        Double[] x = sum(s1, s2);
+        Double[] x = add(s1, s2);
         Double[] y = subtract(s1, s2);
 
         return Math.min(lower.zeta(x, y), upper.zeta(y, x));

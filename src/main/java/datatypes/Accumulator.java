@@ -3,26 +3,26 @@ package datatypes;
 import java.io.Serializable;
 import java.util.Objects;
 
-public class Accumulator<VectorType> implements Serializable {
+public class Accumulator<AccType> implements Serializable {
 
     private String streamID;
-    private VectorType vec;
+    private AccType vec;
 
-    public Accumulator(VectorType vec) {
+    public Accumulator(AccType vec) {
         this.vec = vec;
     }
-    public Accumulator(String streamID, VectorType vec) {
+    public Accumulator(String streamID, AccType vec) {
         this.streamID = streamID;
         this.vec = vec;
     }
 
     public String getStreamID() { return streamID; }
 
-    public VectorType getVec() {
+    public AccType getVec() {
         return vec;
     }
 
-    public void setVec(VectorType vec) {
+    public void setVec(AccType vec) {
         this.vec = vec;
     }
 

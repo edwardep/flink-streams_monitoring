@@ -1,10 +1,11 @@
 package sketches;
 
 import fgm.SafeZone;
+
 import java.util.Arrays;
 
 import static java.lang.Math.min;
-import static utils.SketchOperators.*;
+import static sketches.SketchMath.*;
 
 public class SelfJoinAGMS extends SafeZone {
 

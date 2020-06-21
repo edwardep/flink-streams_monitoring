@@ -143,10 +143,10 @@ public class CoordinatorFunction<VectorType> {
                     state.getEstimate(),
                     state.getSafeZone());
 
-            if(state.getPsi() + state.getPsiBeta() <= safeThreshold)
+            if(state.getPsi() + state.getPsiBeta() > safeThreshold)
             {
                 /*  Configuration is SAFE, broadcast new Quantum */
-                Double quantum = -(state.getPsi() + state.getPsiBeta()) / (2 * cfg.uniqueStreams());
+                Double quantum = (state.getPsi() + state.getPsiBeta()) / (2 * cfg.uniqueStreams());
 
                 broadcast_Quantum(quantum, collector);
 

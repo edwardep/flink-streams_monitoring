@@ -1,6 +1,7 @@
 package test_utils;
 
 import org.apache.flink.api.java.tuple.Tuple2;
+import sketches.AGMSSketch;
 
 import java.util.HashMap;
 import java.util.Random;
@@ -30,6 +31,31 @@ public class Generators {
         Double[] res = new Double[n];
         for(int j=0; j < n; j++)
             res[j] =  (scale*rand.nextDouble())+shift;
+        return res;
+    }
+
+    public static AGMSSketch const_vector(int depth, int width, double value) {
+        AGMSSketch res = new AGMSSketch(depth,width);
+        for(int i = 0; i < depth; i++){
+            for(int j = 0; j < width; j++)
+                res.values()[i][j] = value;
+        }
+        return res;
+    }
+
+    public static Double[][] const_vector2(int depth, int width, double value) {
+        Double[][] res = new Double[depth][width];
+        for(int i = 0; i < depth; i++){
+            for(int j = 0; j < width; j++)
+                res[i][j] = value;
+        }
+        return res;
+    }
+
+    public static Double[] const_vector(int size, double value) {
+        Double[] res = new Double[size];
+        for(int i = 0; i < size; i++)
+                res[i] = value;
         return res;
     }
 }

@@ -8,8 +8,7 @@ import static java.lang.Math.abs;
 import static java.lang.Math.sqrt;
 import static junit.framework.TestCase.assertTrue;
 import static test_utils.Generators.uniform_random_vector;
-import static utils.SketchOperators.*;
-import static utils.SketchOperators.transform;
+import static sketches.SketchMath.*;
 
 public class TwoWayJoinAGMS_test {
 
@@ -44,7 +43,7 @@ public class TwoWayJoinAGMS_test {
         int N = 1000;
         double rho = abs(zeta_E)/sqrt(2.0*D);
         for(int i = 0; i < N; i++) {
-            Double[] X = sum(E, uniform_random_vector(2*D, 20.0*rho, -10.0*rho));
+            Double[] X = add(E, uniform_random_vector(2*D, 20.0*rho, -10.0*rho));
 
             Double[] X1 = Arrays.copyOfRange(X, 0, D);
             Double[] X2 = Arrays.copyOfRange(X, D,2*D);

@@ -2,7 +2,7 @@ package sketches;
 
 import java.util.Arrays;
 
-import static utils.SketchMath.seedVector;
+import static sketches.SketchMath.seedVector;
 
 public class AGMSSketch {
     private Double[][] sketchVector;
@@ -42,12 +42,6 @@ public class AGMSSketch {
         }
     }
 
-    public int sumSquares(int d) {
-        int sum = 0;
-        for(int i = 0; i < this.width(); i++)
-            sum += sketchVector[d][i]*sketchVector[d][i];
-        return sum;
-    }
 
     public Double elementAt(int i, int j) {
         return sketchVector[i][j];
@@ -88,4 +82,16 @@ public class AGMSSketch {
         return Arrays.deepToString(this.sketchVector);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        AGMSSketch that = (AGMSSketch) o;
+        return Arrays.deepEquals(sketchVector, that.sketchVector);
+    }
+
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(sketchVector);
+    }
 }

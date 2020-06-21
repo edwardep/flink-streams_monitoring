@@ -7,8 +7,8 @@ import sketches.SelfJoinAGMS.SelfJoin_upperBound;
 import static java.lang.Math.abs;
 import static junit.framework.TestCase.assertTrue;
 import static test_utils.Generators.uniform_random_vector;
-import static utils.SketchOperators.median;
-import static utils.SketchOperators.sum;
+import static sketches.SketchMath.add;
+import static sketches.SketchMath.median;
 
 public class SelfJoinAGMS_test {
 
@@ -41,7 +41,7 @@ public class SelfJoinAGMS_test {
 
                 // X = E + rand
                 for (int w = 0; w < X.width(); w++)
-                    X.setSketchColumn(w, sum(E.getSketchColumn(w), uniform_random_vector(X.depth(), 10, -5)));
+                    X.setSketchColumn(w, add(E.getSketchColumn(w), uniform_random_vector(X.depth(), 10, -5)));
 
                 int inA = (median(X.values()) < 1.1 * Emed) ? 1 : 0;
                 if (inA == 1) count_inA++;
@@ -90,7 +90,7 @@ public class SelfJoinAGMS_test {
 
                 // X = E + rand
                 for (int w = 0; w < X.width(); w++)
-                    X.setSketchColumn(w, sum(E.getSketchColumn(w), uniform_random_vector(X.depth(), 10, -5)));
+                    X.setSketchColumn(w, add(E.getSketchColumn(w), uniform_random_vector(X.depth(), 10, -5)));
 
                 int inA = (median(X.values()) >= 0.9 * Emed) ? 1 : 0;
                 if (inA == 1) count_inA++;
@@ -137,7 +137,7 @@ public class SelfJoinAGMS_test {
 
                 // X = E + rand
                 for (int w = 0; w < X.width(); w++)
-                    X.setSketchColumn(w, sum(E.getSketchColumn(w), uniform_random_vector(X.depth(), 4,-2)));//2*1.65, -1.65)));
+                    X.setSketchColumn(w, add(E.getSketchColumn(w), uniform_random_vector(X.depth(), 4,-2)));//2*1.65, -1.65)));
 
                 int inA = (abs(median(X.values()) - Emed) <= 0.1*Emed) ? 1 : 0;
                 if(inA == 1) count_inA++;

@@ -1,8 +1,10 @@
-package utils;
+package sketches;
 
 import org.apache.commons.rng.UniformRandomProvider;
 import org.apache.commons.rng.simple.RandomSource;
 import sketches.AGMSSketch;
+
+import java.util.Arrays;
 
 public class SketchMath {
 
@@ -38,6 +40,15 @@ public class SketchMath {
         return res;
     }
 
+    public static Double[] add(Double[] col1, Double[] col2) {
+        assert col1.length == col2.length;
+        Double[] ret = new Double[col1.length];
+        Arrays.fill(ret,0d);
+        for(int d = 0; d < col1.length; d++)
+            ret[d] = col1[d] + col2[d];
+        return ret;
+    }
+
     public static AGMSSketch subtract(AGMSSketch sk1, AGMSSketch sk2){
         assert sk1.depth() == sk2.depth() && sk1.width() == sk2.width();
         AGMSSketch res = new AGMSSketch(sk1.depth(), sk1.width());
@@ -49,7 +60,35 @@ public class SketchMath {
         return res;
     }
 
+    public static Double[] subtract(Double[] col1, Double[] col2) {
+        assert col1.length == col2.length;
+        Double[] ret = new Double[col1.length];
+        Arrays.fill(ret,0d);
+        for(int d = 0; d < col1.length; d++)
+            ret[d] = col1[d] - col2[d];
+        return ret;
+    }
+
+    public static Double[] multiply(Double[] col1, Double[] col2) {
+        assert col1.length == col2.length;
+        Double[] ret = new Double[col1.length];
+        Arrays.fill(ret,0d);
+        for(int d = 0; d < col1.length; d++)
+            ret[d] = col1[d] * col2[d];
+        return ret;
+    }
+
+    public static Double[] sqrt(Double[] col) {
+        assert col != null;
+        Double[] ret = new Double[col.length];
+        Arrays.fill(ret,0d);
+        for(int d = 0; d < col.length; d++)
+            ret[d] = Math.sqrt(col[d]);
+        return ret;
+    }
+
     public static AGMSSketch scale(AGMSSketch sk1, double scalar){
+        assert sk1 != null;
         AGMSSketch res = new AGMSSketch(sk1.depth(), sk1.width());
 
         for(int i = 0; i < sk1.depth(); i++){
@@ -57,6 +96,97 @@ public class SketchMath {
                 res.values()[i][j] = sk1.values()[i][j]*scalar;
         }
         return res;
+    }
+
+    public static Double[] scale(Double[] col, double scalar) {
+        Double[] ret = new Double[col.length];
+        Arrays.fill(ret,0d);
+        for(int d = 0; d < col.length; d++)
+            ret[d] = col[d] * scalar;
+        return ret;
+    }
+
+    public static Double norm(Double[] vector) {
+        assert vector != null;
+        double res = 0d;
+        for (Double e : vector) res += e*e;
+        return Math.sqrt(res);
+    }
+
+    public static Double[] normRow(Double[][] vector) {
+        assert vector != null;
+        Double[] res = new Double[vector.length];
+        Arrays.fill(res, 0d);
+        for(int i = 0; i < vector.length; i++) {
+            for(int j = 0; j < vector[0].length; j++) {
+                res[i] += vector[i][j]*vector[i][j];
+            }
+        }
+        for(int d = 0; d < vector.length; d++)
+            res[d] = Math.sqrt(res[d]);
+        return res;
+    }
+
+    public static Double[][] normalize(Double[][] vector, Double[] norm) {
+        Double[][] res = new Double[vector.length][vector[0].length];
+        for(int w = 0; w < vector[0].length; w++){
+            for(int d = 0; d < vector.length; d++){
+                if(norm[d] > 0)
+                    res[d][w] = vector[d][w] / norm[d];
+            }
+        }
+        return res;
+    }
+
+    public static Double[] normalize(Double[] vector, Double[] norm) {
+        assert vector.length % norm.length == 0;
+        int w = vector.length / norm.length;
+        Double[] res = new Double[vector.length];
+        for(int i = 0; i < vector.length; i++)
+            res[i] = vector[i] / norm[i / w];
+        return res;
+    }
+
+    public static Double[] dotProduct(Double[][] A, Double[][] B) {
+        assert (A.length == B.length) && (A[0].length == B[0].length);
+        Double[] product = new Double[A.length];
+        Arrays.fill(product, 0d);
+        for(int w = 0; w < A[0].length; w++){
+            for(int d = 0; d < A.length; d++){
+                product[d] += A[d][w] * B[d][w];
+            }
+        }
+        return product;
+    }
+
+    public static Double median(Double[] queryVector) {
+        assert queryVector != null;
+        Arrays.sort(queryVector);
+        return queryVector[(queryVector.length)/2];
+    }
+
+    public static Double median(Double[][] A, Double[][] B) {
+        return median(dotProduct(A, B));
+    }
+
+    public static Double median(Double[][] A) {
+        return median(dotProduct(A, A));
+    }
+
+    /**
+     * Transforming 1d vector to 2d vector for use in sketch operations
+     * @param vec   the source vector
+     * @param depth     the resulting vector's depth
+     * @param width     the resulting vector's width
+     * @return  2d vector
+     */
+    public static Double[][] transform(Double[] vec, int depth, int width) {
+        assert vec.length == depth*width;
+        Double[][] ret = new Double[depth][width];
+        for(int i = 0; i < depth; i++) {
+            System.arraycopy(vec, (i*width), ret[i], 0, width);
+        }
+        return ret;
     }
 
 }
