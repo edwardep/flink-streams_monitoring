@@ -69,15 +69,9 @@ public class AGMSConfig implements BaseConfig<Vector, AGMSSketch, InputRecord> {
     }
 
     @Override
-    public double safeFunction(AGMSSketch drift, AGMSSketch estimate) {
-        //SelfJoinAGMS sz = new SelfJoinAGMS()
-        return 0;
-    }
-
-    @Override
     public double safeFunction(AGMSSketch drift, AGMSSketch estimate, SafeZone safeZone) {
         AGMSSketch XE = add(drift, estimate);
-        return ((SelfJoinAGMS) safeZone).inf(XE.values());
+        return ((SelfJoinAGMS) safeZone).zeta(XE.values());
     }
 
     @Override
@@ -89,6 +83,6 @@ public class AGMSConfig implements BaseConfig<Vector, AGMSSketch, InputRecord> {
     public SafeZone initializeSafeZone(AGMSSketch E) {
         double e = 0.1;
         double med = median(E.values());
-        return new SelfJoinAGMS(E.values(), (1-e)*med, (1+e)*med, true);
+        return new SelfJoinAGMS(E.values(), (1-e)*med, (1+e)*med, false);
     }
 }

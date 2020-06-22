@@ -12,10 +12,8 @@ import java.util.List;
 
 import static utils.DoubleOperators.*;
 
+@Deprecated
 public class FgmConfig implements BaseConfig<Vector, Vector, InputRecord> {
-
-    private List<String> keyGroup = new ArrayList<>(Arrays.asList("99", "98", "66", "67", "0", "2", "64", "33", "1", "4",
-            "71", "73", "5", "72", "68", "65", "3", "38", "34", "37", "69", "36", "35", "40", "39", "70"));
 
     @Override
     public TypeInformation<Vector> getVectorType() {
@@ -24,7 +22,7 @@ public class FgmConfig implements BaseConfig<Vector, Vector, InputRecord> {
 
     @Override
     public Integer uniqueStreams() {
-        return keyGroup.size();
+        return 10;
     }
 
     @Override
@@ -74,14 +72,10 @@ public class FgmConfig implements BaseConfig<Vector, Vector, InputRecord> {
     }
 
     @Override
-    public double safeFunction(Vector drift, Vector estimate) {
+    public double safeFunction(Vector drift, Vector estimate, SafeZone safeZone) {
         double epsilon = 0.2;
 
         double normEstimate = norm(estimate.map().entrySet());
-
-        if(drift == null)
-            drift = new Vector();
-//            return - epsilon * normEstimate;
 
         // calculate f1(X) = |X+E| -(1+e)|E|
         double f1 = norm(vec_add(estimate.map(), drift.map()).entrySet()) - (1.0 + epsilon) * normEstimate;
@@ -91,11 +85,6 @@ public class FgmConfig implements BaseConfig<Vector, Vector, InputRecord> {
 
         // select the maximum of the two values
         return Math.max(f1, f2);
-    }
-
-    @Override
-    public double safeFunction(Vector drift, Vector estimate, SafeZone safeZone) {
-        return 0;
     }
 
     @Override

@@ -2,10 +2,8 @@ package operators;
 
 import configurations.BaseConfig;
 import datatypes.InternalStream;
-import datatypes.StreamType;
 import datatypes.internals.Drift;
 import datatypes.internals.Increment;
-import datatypes.internals.InitCoordinator;
 import datatypes.internals.Zeta;
 import fgm.CoordinatorFunction;
 import org.apache.flink.configuration.Configuration;

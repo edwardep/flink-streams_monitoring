@@ -57,7 +57,7 @@ public class Validation {
 
 
 
-        env.execute();
+        //env.execute();
     }
     public static class WindowFunctionDef extends ProcessWindowFunction<Vector, String, String, TimeWindow> {
 

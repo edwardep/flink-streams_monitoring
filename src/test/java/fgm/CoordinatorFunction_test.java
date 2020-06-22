@@ -4,11 +4,13 @@ import configurations.TestP1Config;
 import configurations.TestP4Config;
 import datatypes.InternalStream;
 import datatypes.Vector;
+import datatypes.internals.*;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
 import org.apache.flink.streaming.api.functions.co.CoProcessFunction;
+import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.util.Collector;
 import org.junit.After;
 import org.junit.Before;
@@ -17,7 +19,6 @@ import org.mockito.Mockito;
 import state.CoordinatorStateHandler;
 import test_utils.Testable;
 
-import static datatypes.InternalStream.*;
 import static junit.framework.TestCase.*;
 import static test_utils.Generators.generateSequence;
 
@@ -33,7 +34,16 @@ public class CoordinatorFunction_test {
     public void setup() {
         env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(1);
-        source = env.fromElements(emptyStream()).keyBy(InternalStream::getStreamID);
+        source = env
+                .addSource(new SourceFunction<InternalStream>() {
+                    @Override
+                    public void run(SourceContext<InternalStream> sourceContext) throws Exception {
+                        sourceContext.collect(new EmptyStream());
+                    }
+                    @Override
+                    public void cancel() { }
+                })
+                .keyBy(InternalStream::unionKey);
     }
 
     @After
@@ -54,23 +64,23 @@ public class CoordinatorFunction_test {
                 fgm.disableRebalancing();
 
                 // mock input
-                InternalStream input = downstreamDrift(0, new Vector(generateSequence(5)));
+                InternalStream input = new Drift<>(0, new Vector(generateSequence(5)));
 
                 // call routine
-                fgm.handleDrift(state, input, ctx, collector);
+                fgm.handleDrift(state, (Drift) input, ctx, collector);
 
                 assertEquals(new Vector(generateSequence(5)), state.getEstimate());
 
                 state.setNodeCount(0);
                 // calling again, expecting the values to be doubled
-                fgm.handleDrift(state, input, ctx, collector);
+                fgm.handleDrift(state, (Drift) input, ctx, collector);
 
                 assertEquals(new Vector(generateSequence(5,2)), state.getEstimate());
 
                 state.setNodeCount(0);
                 // mock negative drift values
-                input = downstreamDrift(0, new Vector(generateSequence(5, -1)));
-                fgm.handleDrift(state, input, ctx, collector);
+                input = new Drift<>(0, new Vector(generateSequence(5, -1)));
+                fgm.handleDrift(state, (Drift) input, ctx, collector);
 
                 assertEquals(new Vector(generateSequence(5)), state.getEstimate());
             }
@@ -109,8 +119,8 @@ public class CoordinatorFunction_test {
                  *   computes the Global Estimate vector and finally broadcasts it back(hyperparameters).
                  */
                 for (int tid = 0; tid < uniqueStreams; tid++) {
-                    InternalStream payload = downstreamDrift(0, new Vector(generateSequence(10)));
-                    fgm.handleDrift(state, payload, ctx, collector);
+                    InternalStream payload = new Drift<>(0, new Vector(generateSequence(10)));
+                    fgm.handleDrift(state, (Drift) payload, ctx, collector);
                 }
 
                 // validate : expecting global state to be equal to each drift since it is the result of Averaging
@@ -129,7 +139,7 @@ public class CoordinatorFunction_test {
 
         // checking broadcast
         for(int tid = 0; tid < uniqueStreams; tid++) {
-            InternalStream expected = upstreamGlobalEstimate(String.valueOf(tid), new Vector(generateSequence(10)));
+            InternalStream expected = new GlobalEstimate<>(String.valueOf(tid), new Vector(generateSequence(10)));
             assertEquals(expected.toString(), Testable.InternalStreamSink.result.get(tid).toString());
         }
     }
@@ -151,9 +161,10 @@ public class CoordinatorFunction_test {
             @Override
             public void processElement(InternalStream input, Context context, Collector<InternalStream> collector) throws Exception {
                 // setup
-                Double zeta = 1.0;
+                Double zeta = -1.0;
                 CoProcessFunction.Context ctx = Mockito.mock(CoProcessFunction.Context.class);
                 fgm.disableRebalancing();
+                state.setEstimate(new Vector(generateSequence(5)));
 
                 // test_case: Workers send their Phi(X) values and coordinator computes Psi.
                 for (int tid = 0; tid < uniqueStreams; tid++)
@@ -173,7 +184,7 @@ public class CoordinatorFunction_test {
 
         // TEST_CASE: assert that the broadcasted POJOs are the expected ones
         for (int tid = 0; tid < uniqueStreams; tid++) {
-            InternalStream expected = upstreamRequestDrift(String.valueOf(tid));
+            InternalStream expected = new RequestDrift(String.valueOf(tid));
             assertEquals(expected.toString(), Testable.InternalStreamSink.result.get(tid).toString());
         }
     }
@@ -186,7 +197,7 @@ public class CoordinatorFunction_test {
     @Test
     public void fgm_handleZeta_pass_test() throws Exception {
         // setup : mock received Phi(Xi) named zeta
-        Double zeta = -1.0;
+        Double zeta = 1.0;
         int uniqueStreams = 4;
         source.process(new KeyedProcessFunction<String, InternalStream, InternalStream>() {
             fgm.CoordinatorFunction fgm;
@@ -198,6 +209,7 @@ public class CoordinatorFunction_test {
                 // setup
                 CoProcessFunction.Context ctx = Mockito.mock(CoProcessFunction.Context.class);
                 fgm.disableRebalancing();
+                state.setEstimate(new Vector(generateSequence(5)));
 
                 /*
                  *  TEST_CASE: The computed psi is less or equal than the Threshold, so a new subRound
@@ -222,9 +234,9 @@ public class CoordinatorFunction_test {
         env.execute();
 
         // TEST_CASE: assert that the broadcasted POJOs are the expected ones
-        Double quantum = -(uniqueStreams * zeta) / (2 * uniqueStreams); // psi = zeta*uniqueStreams because zeta is constant
+        Double quantum = (uniqueStreams * zeta) / (2 * uniqueStreams); // psi = zeta*uniqueStreams because zeta is constant
         for (int tid = 0; tid < uniqueStreams; tid++) {
-            InternalStream expected = upstreamQuantum(String.valueOf(tid), quantum);
+            InternalStream expected = new Quantum(String.valueOf(tid), quantum);
             assertEquals(expected.toString(), Testable.InternalStreamSink.result.get(tid).toString());
         }
     }
@@ -279,7 +291,7 @@ public class CoordinatorFunction_test {
 
         // TEST_CASE: assert that the broadcasted POJOs are the expected ones
         for (int tid = 0; tid < uniqueStreams; tid++) {
-            InternalStream expected = upstreamRequestZeta(String.valueOf(tid));
+            InternalStream expected = new RequestZeta(String.valueOf(tid));
             assertEquals(expected.toString(), Testable.InternalStreamSink.result.get(tid).toString());
         }
         Testable.InternalStreamSink.result.clear();
@@ -301,18 +313,19 @@ public class CoordinatorFunction_test {
             @Override
             public void processElement(InternalStream input, Context context, Collector<InternalStream> collector) throws Exception {
                 CoProcessFunction.Context ctx = Mockito.mock(CoProcessFunction.Context.class);
+                state.setEstimate(new Vector(generateSequence(5)));
 
                 for (int subRounds = 0; subRounds < 50; subRounds++) {
                     // receiving Phi(Xi), new SubRound
-                    InternalStream stream = downstreamZeta(-1.0);
+                    InternalStream stream = new Zeta(1.0);
                     for (int i = 0; i < uniqueStreams; i++)
-                        fgm.handleZeta(state, ctx, stream.getPayload(), collector);
+                        fgm.handleZeta(state, ctx, ((Zeta) stream).getPayload(), collector);
 
                     assertFalse(state.getSync());
 
                     // receiving increment (violation), end of subRound
-                    stream = downstreamIncrement(5.0);
-                    fgm.handleIncrement(state, stream.getPayload().intValue(), collector);
+                    stream = new Increment(5);
+                    fgm.handleIncrement(state, ((Increment) stream).getPayload(), collector);
                     assertTrue(state.getSync());
                 }
             }

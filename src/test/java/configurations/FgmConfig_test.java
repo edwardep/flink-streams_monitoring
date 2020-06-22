@@ -57,10 +57,17 @@ public class FgmConfig_test {
     public void safeFunction_test() {
         FgmConfig cfg = new FgmConfig();
 
-        Vector drift = new Vector();
-        Vector estimate = new Vector(generateSequence(5));
+        Vector drift = new Vector(generateSequence(1, 1.0));
+        Vector estimate = new Vector(generateSequence(5, 10.0));
 
-        double phi = cfg.safeFunction(drift, estimate);
+        double phi = cfg.safeFunction(drift, estimate, null);
+
+        System.out.println(phi);
+
+        phi = cfg.safeFunction(drift, estimate, null);
+
+        System.out.println(phi);
+
     }
 
 

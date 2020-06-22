@@ -57,8 +57,6 @@ public interface BaseConfig<AccType, VectorType, RecordType> extends Serializabl
 
     VectorType scaleVector(VectorType vector, Double scalar);
 
-    double safeFunction(VectorType drift, VectorType estimate);
-
     double safeFunction(VectorType drift, VectorType estimate, SafeZone safeZone);
 
     String queryFunction(VectorType estimate, long timestamp);

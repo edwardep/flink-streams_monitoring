@@ -4,23 +4,24 @@ package fgm;
 import configurations.TestP1Config;
 import datatypes.InternalStream;
 import datatypes.Vector;
+import datatypes.internals.Drift;
+import datatypes.internals.EmptyStream;
+import datatypes.internals.Increment;
+import datatypes.internals.Zeta;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
+import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.util.Collector;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import state.WorkerStateHandler;
 import test_utils.Testable;
-
-
 import java.util.HashMap;
 
-
-import static datatypes.InternalStream.emptyStream;
 import static junit.framework.TestCase.*;
 import static test_utils.Generators.generateSequence;
 
@@ -35,7 +36,16 @@ public class WorkerFunction_test {
     public void setup() {
         env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(1);
-        source = env.fromElements(emptyStream()).keyBy(InternalStream::getStreamID);
+        source = env
+                .addSource(new SourceFunction<InternalStream>() {
+                    @Override
+                    public void run(SourceContext<InternalStream> sourceContext) throws Exception {
+                        sourceContext.collect(new EmptyStream());
+                    }
+                    @Override
+                    public void cancel() { }
+                })
+                .keyBy(InternalStream::unionKey);
     }
 
     @After
@@ -136,9 +146,7 @@ public class WorkerFunction_test {
             @Override
             public void processElement(InternalStream internalStream, Context context, Collector<InternalStream> collector) throws Exception {
                 // setup : mock estimate (hyperparams payload)
-                HashMap<Tuple2<Integer, Integer>, Double> est = new HashMap<>();
-                est.put(Tuple2.of(0,1), 10d);
-                Vector hyperparams = new Vector(est);
+                Vector hyperparams = new Vector(generateSequence(1,10d));
 
                 // test_case: Hyperparameters are received and a new Round begins
                 fgm.newRound(state, hyperparams);
@@ -146,7 +154,7 @@ public class WorkerFunction_test {
                 // validate
                 assertEquals("{(0,1)=10.0}", state.getEstimate().toString());
                 assertEquals(1.0, state.getQuantum());
-                assertEquals(conf.safeFunction(null, (Vector) state.getEstimate()), state.getLastZeta());
+                assertEquals(conf.safeFunction(new Vector(), (Vector) state.getEstimate(), null), state.getLastZeta());
                 assertTrue(state.getSubRoundPhase());
                 assertTrue(state.getSubRoundInit());
 
@@ -175,9 +183,7 @@ public class WorkerFunction_test {
             @Override
             public void processElement(InternalStream internalStream, Context context, Collector<InternalStream> collector) throws Exception {
                 // setup : initialize estimate, so that phi(X) has non zero value
-                HashMap<Tuple2<Integer,Integer>, Double> est = new HashMap<>();
-                est.put(Tuple2.of(0,1), 10d);
-                state.setEstimate(new Vector(est));
+                state.setEstimate(new Vector(generateSequence(1,10d)));
 
                 // test_case: SubRound phase is not yet enabled
                 fgm.subRoundProcess(state, collector);
@@ -195,9 +201,7 @@ public class WorkerFunction_test {
                 assertEquals(0.0, state.getFi());
 
                 // setup: at some point in time..
-                HashMap<Tuple2<Integer,Integer>, Double> map = new HashMap<>();
-                map.put(Tuple2.of(0,1), 0.5);
-                state.setDrift(new Vector(map));
+                state.setDrift(new Vector(generateSequence(1,0.5)));
                 state.setZeta(-3.0);
                 state.setQuantum(1.0);
                 state.setSubRoundInit(false);
@@ -219,7 +223,7 @@ public class WorkerFunction_test {
         env.execute();
 
         // test_case: assert that the emitted object is the expected one
-        InternalStream expected = InternalStream.downstreamIncrement(1d);
+        InternalStream expected = new Increment(1);
         assertEquals(expected.toString(), Testable.InternalStreamSink.result.get(0).toString());
     }
 
@@ -258,7 +262,7 @@ public class WorkerFunction_test {
         env.execute();
 
         // test_case: assert that the emitted object is the expected one
-        InternalStream expected = InternalStream.downstreamDrift(0, new Vector(mock));
+        InternalStream expected = new Drift<>(0, new Vector(mock));
         assertEquals(expected.toString(), Testable.InternalStreamSink.result.get(0).toString());
     }
 
@@ -276,14 +280,14 @@ public class WorkerFunction_test {
             @Override
             public void processElement(InternalStream internalStream, Context context, Collector<InternalStream> collector) throws Exception {
                 // setup
-                state.setFi(-5.0);
+                state.setFi(5.0);
 
                 // test_case: At the end of a SubRound nodes are requested to send their current Phi(Xi)
                 fgm.sendZeta(state, collector);
 
                 // validate
                 assertFalse(state.getSubRoundPhase());
-                assertEquals(-5.0, state.getLastZeta());
+                assertEquals(5.0, state.getLastZeta());
             }
 
             @Override
@@ -295,7 +299,7 @@ public class WorkerFunction_test {
         env.execute();
 
         // test_case: assert that the emitted object is the expected one
-        InternalStream expected = InternalStream.downstreamZeta(-5.0);
+        InternalStream expected = new Zeta(5.0);
         assertEquals(expected.toString(), Testable.InternalStreamSink.result.get(0).toString());
     }
 

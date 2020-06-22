@@ -127,7 +127,7 @@ public class SelfJoinAGMS_test {
             SelfJoinAGMS sz = new SelfJoinAGMS(E.values(), 0.9*Emed, 1.1*Emed, true);
 
 
-            assertTrue(0.0 < sz.inf(E.values()));
+            assertTrue(0.0 < sz.zeta(E.values()));
 
             // test 100 sketches from each type
             int count_inA = 0, count_notInA = 0, count_inZ = 0, count_notInZ = 0;
@@ -143,7 +143,7 @@ public class SelfJoinAGMS_test {
                 if(inA == 1) count_inA++;
                 else count_notInA++;
 
-                int inZ = (sz.inf(X.values()) > 0) ? 1 : 0;
+                int inZ = (sz.zeta(X.values()) > 0) ? 1 : 0;
                 if (inZ == 1) count_inZ++;
                 else count_notInZ++;
 

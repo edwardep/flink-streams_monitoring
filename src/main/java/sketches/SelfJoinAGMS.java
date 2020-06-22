@@ -97,7 +97,7 @@ public class SelfJoinAGMS extends SafeZone {
      * @param X The drift vector
      * @return  The maximum of the two safezone values
      */
-    public double inf(double[][] X) {
+    public double zeta(double[][] X) {
         return min(lowerBound.median(X), upperBound.median(X));
     }
 }

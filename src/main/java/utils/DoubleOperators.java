@@ -7,32 +7,6 @@ import java.util.Map;
 
 public class DoubleOperators {
 
-
-    public static Double add(Double a, Double b) {
-        if(a == null) a = 0d;
-        if(b == null) b = 0d;
-        return a + b;
-    }
-
-    public static Double subtract(Double a, Double b) {
-        if(a == null) a = 0d;
-        if(b == null) b = 0d;
-        return a - b;
-    }
-
-    public static Double multiply(Double a, Double b) {
-        if (a == null) a = 0d;
-        if (b == null) b = 0d;
-        return a * b;
-    }
-
-    public static Double divide(Double a, Double b) {
-        if (a == null) a = 0d;
-        if (b == null || b == 0d) throw new ArithmeticException("Division by 0 ~ Check your second argument.");
-        return a / b;
-    }
-
-
     public static <K> Map<K, Double> vec_add(Map<K, Double> A, Map<K, Double> B) {
         Map<K, Double> res = new HashMap<>(A);
         for(Map.Entry<K, Double> entry : B.entrySet())
@@ -41,16 +15,9 @@ public class DoubleOperators {
     }
 
     public static <K> Double norm(Iterable<Map.Entry<K, Double>> iterable) {
-        Double res = 0d;
-        for (Map.Entry<K, Double> entry : iterable)
-            res = add(res, multiply(entry.getValue(), entry.getValue()));
-
-        return Math.sqrt(res);
-    }
-
-    public static Double norm(Double[] vector) {
         double res = 0d;
-        for (Double e : vector) res += e*e;
+        for (Map.Entry<K, Double> entry : iterable)
+            res += entry.getValue() * entry.getValue();
         return Math.sqrt(res);
     }
 
@@ -63,14 +30,6 @@ public class DoubleOperators {
         return res;
     }
 
-    public static <K> Double dotProduct(Map<K, Double> A,
-                                        Map<K, Double> B) {
-
-        Double product = 0d;
-        for (K key : A.keySet())
-            product = add(product, multiply(A.get(key), B.getOrDefault(key, 0d)));
-        return product;
-    }
 
     public static <K> Double dotProductMap(Map<K, Double> A,
                                            Map<K, Double> B) {

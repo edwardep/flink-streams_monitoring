@@ -10,6 +10,7 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static utils.DoubleOperators.*;
 import static utils.DoubleOperators.normalize;
@@ -67,31 +68,25 @@ public class TestP1Config implements BaseConfig<Vector, Vector, InputRecord> {
 
     @Override
     public Vector updateVector(Vector accumulator, Vector vector) {
-        return null;
-    }
-
-    @Override
-    public double safeFunction(Vector drift, Vector estimate) {
-        double epsilon = 0.20;
-
-        double normEstimate = norm(estimate.map().entrySet());
-
-        if(drift == null)
-            return - epsilon * normEstimate;
-
-        // calculate f1(X) = |X+E| -(1+e)|E|
-        double f1 = norm(vec_add(estimate.map(), drift.map()).entrySet()) - (1.0 + epsilon) * normEstimate;
-
-        // calculate f2(X) = -e|E| - X dot (E/|E|)
-        double f2 = -epsilon * normEstimate - dotProductMap(normalize(estimate.map().entrySet(), normEstimate), drift.map());
-
-        // select the maximum of the two values
-        return Math.max(f1, f2);
+        for(Map.Entry<Tuple2<Integer, Integer>, Double> entry : accumulator.map().entrySet())
+            vector.map().put(entry.getKey(), vector.getValue(entry.getKey()) + entry.getValue());
+        return vector;
     }
 
     @Override
     public double safeFunction(Vector drift, Vector estimate, SafeZone safeZone) {
-        return 0;
+        double epsilon = 0.20;
+
+        double normEstimate = norm(estimate.map().entrySet());
+
+        // calculate f1(X) = (1+e)|E| - |X+E|
+        double f1 = (1.0 + epsilon) * normEstimate - norm(vec_add(estimate.map(), drift.map()).entrySet());
+
+        // calculate f2(X) = X dot (E/|E|) - e|E|
+        double f2 = - dotProductMap(normalize(estimate.map().entrySet(), normEstimate), drift.map()) - epsilon * normEstimate;
+
+        // select the minimum of the two values
+        return Math.min(f1, f2);
     }
 
     @Override

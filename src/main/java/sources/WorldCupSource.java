@@ -2,7 +2,6 @@ package sources;
 
 import configurations.BaseConfig;
 import datatypes.InputRecord;
-import datatypes.WCStruct;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 
@@ -40,7 +39,7 @@ public class WorldCupSource implements SourceFunction<InputRecord> {
                 long timestampMillis = Long.parseLong(tokens[WCStruct.timestamp.ordinal()])*1000;
 
                 /*
-                 *  GenericInputStream Object:
+                 *  InputRecord Object:
                  *      timestamp = this is used by the timestamp extractor
                  *      streamId = all Worker-related keyBy() operations are done on this field
                  *      Tuple2.of( Tuple2.of(ClientID, request_type) ,  1.0 )   -> (key, val)
@@ -83,5 +82,16 @@ public class WorldCupSource implements SourceFunction<InputRecord> {
 
     private String hashStreamID(String streamID) {
         return String.valueOf(Integer.parseInt(streamID) % cfg.uniqueStreams());
+    }
+
+    private enum WCStruct {
+        timestamp,
+        clientID,
+        objectID,
+        size,
+        method,
+        status,
+        type,
+        server
     }
 }
