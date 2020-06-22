@@ -3,15 +3,15 @@ package fgm;
 import configurations.BaseConfig;
 
 import datatypes.InternalStream;
+import datatypes.internals.Drift;
+import datatypes.internals.Increment;
+import datatypes.internals.Zeta;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import state.WorkerStateHandler;
 import java.io.IOException;
 import java.io.Serializable;
-
-import static datatypes.InternalStream.*;
-import static java.lang.Math.max;
 
 
 /**
@@ -68,7 +68,7 @@ public class WorkerFunction<AccType, VectorType> implements Serializable {
                           Collector<InternalStream> out) throws Exception {
 
         // Send Drift Vector to the Coordinator
-        out.collect(downstreamDrift(state.getLastTs(), state.getDrift()));
+        out.collect(new Drift<>(state.getLastTs(), state.getDrift()));
 
         // Clear the drift vector
         state.setDrift(null);
@@ -86,7 +86,7 @@ public class WorkerFunction<AccType, VectorType> implements Serializable {
 
         state.setLastZeta(state.getFi());
 
-        out.collect(downstreamZeta(state.getFi()));
+        out.collect(new Zeta(state.getFi()));
     }
 
     /**
@@ -158,7 +158,7 @@ public class WorkerFunction<AccType, VectorType> implements Serializable {
         /*  IF Ci has increased, send the increment and save the new_counter */
         if (increment > 0) {
             state.setLocalCounter(new_counter);
-            out.collect(downstreamIncrement((double) increment));
+            out.collect(new Increment(increment));
         }
     }
 

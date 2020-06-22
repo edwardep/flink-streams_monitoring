@@ -1,5 +1,6 @@
 package sources;
 
+import configurations.BaseConfig;
 import datatypes.InputRecord;
 import datatypes.WCStruct;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -11,14 +12,16 @@ import java.io.IOException;
 
 public class WorldCupSource implements SourceFunction<InputRecord> {
     private String input_path;
+    private BaseConfig<?,?,?> cfg;
 
     private boolean isRunning = true;
 
     private FileReader file;
     private BufferedReader reader;
 
-    public WorldCupSource(String input_path) {
+    public WorldCupSource(String input_path, BaseConfig<?,?,?> cfg) {
         this.input_path = input_path;
+        this.cfg = cfg;
     }
 
     @Override
@@ -36,7 +39,6 @@ public class WorldCupSource implements SourceFunction<InputRecord> {
                 // multiplying by 1000 because world cup dataset has unix timestamps in seconds
                 long timestampMillis = Long.parseLong(tokens[WCStruct.timestamp.ordinal()])*1000;
 
-
                 /*
                  *  GenericInputStream Object:
                  *      timestamp = this is used by the timestamp extractor
@@ -44,7 +46,7 @@ public class WorldCupSource implements SourceFunction<InputRecord> {
                  *      Tuple2.of( Tuple2.of(ClientID, request_type) ,  1.0 )   -> (key, val)
                  */
                 InputRecord event = new InputRecord(
-                        String.valueOf(Integer.parseInt(tokens[WCStruct.server.ordinal()]) % 10),
+                        hashStreamID(tokens[WCStruct.server.ordinal()]),
                         timestampMillis,
                         Tuple2.of(
                                 Integer.parseInt(tokens[WCStruct.clientID.ordinal()]),
@@ -77,5 +79,9 @@ public class WorldCupSource implements SourceFunction<InputRecord> {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private String hashStreamID(String streamID) {
+        return String.valueOf(Integer.parseInt(streamID) % cfg.uniqueStreams());
     }
 }

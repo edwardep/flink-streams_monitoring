@@ -8,6 +8,7 @@ import datatypes.Accumulator;
 import datatypes.InputRecord;
 import datatypes.InternalStream;
 import datatypes.Vector;
+import datatypes.internals.InitCoordinator;
 import operators.*;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.utils.ParameterTool;
@@ -17,18 +18,12 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.IterativeStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
-import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.time.Time;
-import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
-import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
-import sketches.AGMSSketch;
-import sources.SyntheticEventTimeSource;
 import sources.WorldCupSource;
 
-import static datatypes.InternalStream.initializeCoordinator;
-import static datatypes.InternalStream.windowSlide;
 
 public class MonitoringJob {
 
@@ -38,7 +33,7 @@ public class MonitoringJob {
 
     public static void main(String[] args) throws Exception {
 
-        int defParallelism = 1; // Flink Parallelism
+        int defParallelism = 4; // Flink Parallelism
         int defWindowSize = 3600; //  the size of the sliding window in seconds
         int defSlideSize = 5; //  the sliding interval in milliseconds
 
@@ -69,8 +64,15 @@ public class MonitoringJob {
         /**
          *  Dummy Source to Initialize coordinator
          */
-        DataStream<InternalStream> coordinator_init = env
-                .fromElements(initializeCoordinator(parameters.getLong("warmup", defWarmup),null))
+        SingleOutputStreamOperator<InternalStream> coordinator_init = env
+                .addSource(new SourceFunction<InternalStream>() {
+                    @Override
+                    public void run(SourceContext<InternalStream> sourceContext) throws Exception {
+                        sourceContext.collect(new InitCoordinator(parameters.getLong("warmup", defWarmup)));
+                    }
+                    @Override
+                    public void cancel() { }
+                })
                 .setParallelism(1)
                 .name("coord_init");
 
@@ -82,7 +84,7 @@ public class MonitoringJob {
 //                .readTextFile(parameters.get("input", defInputPath))
 //                .flatMap(new WorldCupSourceHDFS());
         DataStream<InputRecord> streamFromFile = env
-                .addSource(new WorldCupSource(defInputPath))
+                .addSource(new WorldCupSource(defInputPath, config))
                 .map(x -> x)
                 .returns(TypeInformation.of(InputRecord.class));
 

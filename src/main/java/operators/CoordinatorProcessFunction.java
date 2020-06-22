@@ -3,6 +3,10 @@ package operators;
 import configurations.BaseConfig;
 import datatypes.InternalStream;
 import datatypes.StreamType;
+import datatypes.internals.Drift;
+import datatypes.internals.Increment;
+import datatypes.internals.InitCoordinator;
+import datatypes.internals.Zeta;
 import fgm.CoordinatorFunction;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.co.CoProcessFunction;
@@ -27,16 +31,12 @@ public class CoordinatorProcessFunction<VectorType> extends CoProcessFunction<In
     @Override
     public void processElement1(InternalStream input, Context ctx, Collector<InternalStream> collector) throws Exception {
         //System.out.println(input.toString());
-        switch(input.getType()) {
-            case DRIFT:
-                fgm.handleDrift(state, input, ctx, collector);
-                break;
-            case ZETA:
-                fgm.handleZeta(state, ctx, input.getPayload(), collector);
-                break;
-            case INCREMENT:
-                fgm.handleIncrement(state, input.getPayload().intValue(), collector);
-                break;
+        if (Drift.class.equals(input.getClass())) {
+            fgm.handleDrift(state, (Drift<VectorType>) input, ctx, collector);
+        } else if (Zeta.class.equals(input.getClass())) {
+            fgm.handleZeta(state, ctx, ((Zeta) input).getPayload(), collector);
+        } else if (Increment.class.equals(input.getClass())) {
+            fgm.handleIncrement(state, ((Increment) input).getPayload(), collector);
         }
     }
 
@@ -44,7 +44,8 @@ public class CoordinatorProcessFunction<VectorType> extends CoProcessFunction<In
     public void processElement2(InternalStream input, Context ctx, Collector<InternalStream> collector) throws Exception {
         // here you can initialize the globalEstimate
         fgm.disableRebalancing();
-        ctx.timerService().registerProcessingTimeTimer(ctx.timerService().currentProcessingTime() + (input.getTimestamp()));
+        int delay = 3000;
+        ctx.timerService().registerProcessingTimeTimer(ctx.timerService().currentProcessingTime() + delay);
     }
 
     @Override

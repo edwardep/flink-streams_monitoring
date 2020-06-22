@@ -39,7 +39,7 @@ public class Validation {
 
 
         KeyedStream<InputRecord, String> keyedStream = env
-                .addSource(new WorldCupSource(defInputPath))
+                .addSource(new WorldCupSource(defInputPath, cfg)) //fixme: HASHING Server id!!
                 .map(x -> x)
                 .returns(TypeInformation.of(InputRecord.class))
                 .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InputRecord>() {

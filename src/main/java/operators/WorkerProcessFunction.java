@@ -3,6 +3,7 @@ package operators;
 import configurations.BaseConfig;
 import datatypes.Accumulator;
 import datatypes.InternalStream;
+import datatypes.internals.*;
 import fgm.WorkerFunction;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.co.KeyedCoProcessFunction;
@@ -32,30 +33,21 @@ public class WorkerProcessFunction<AccType, VectorType>  extends KeyedCoProcessF
 
     @Override
     public void processElement2(InternalStream input, Context context, Collector<InternalStream> collector) throws Exception {
-        //System.out.println(input.toString());
-        switch (input.getType()) {
-            case HYPERPARAMETERS:
-                fgm.newRound(state, (VectorType) input.getVector());
-                fgm.subRoundProcess(state, collector);
-                break;
+       // System.out.println("id:"+context.getCurrentKey()+", type:"+input.getClass().getName());
 
-            case QUANTUM:
-                fgm.newSubRound(state, input.getPayload());
-                fgm.subRoundProcess(state, collector);
-                break;
-
-            case REQ_DRIFT:
-                fgm.sendDrift(state, collector);
-                break;
-
-            case REQ_ZETA:
-                fgm.sendZeta(state, collector);
-                break;
-
-            case BALANCE:
-                fgm.newRebalancedRound(state, input.getPayload());
-                fgm.subRoundProcess(state, collector);
-                break;
+        if (GlobalEstimate.class.equals(input.getClass())) {
+            fgm.newRound(state, ((GlobalEstimate<VectorType>) input).getVector());
+            fgm.subRoundProcess(state, collector);
+        } else if (Quantum.class.equals(input.getClass())) {
+            fgm.newSubRound(state, ((Quantum) input).getPayload());
+            fgm.subRoundProcess(state, collector);
+        } else if (RequestDrift.class.equals(input.getClass())) {
+            fgm.sendDrift(state, collector);
+        } else if (RequestZeta.class.equals(input.getClass())) {
+            fgm.sendZeta(state, collector);
+        } else if (Lambda.class.equals(input.getClass())) {
+            fgm.newRebalancedRound(state, ((Lambda) input).getLambda());
+            fgm.subRoundProcess(state, collector);
         }
     }
 

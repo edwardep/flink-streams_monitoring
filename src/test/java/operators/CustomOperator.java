@@ -1,24 +1,12 @@
 package operators;
 
-import configurations.BaseConfig;
-import configurations.TestP1Config;
-import datatypes.InputRecord;
-import datatypes.InternalStream;
-import datatypes.Vector;
-import org.apache.flink.api.common.functions.MapFunction;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.core.fs.FileSystem;
-import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.datastream.IterativeStream;
-import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
-import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
-import org.apache.flink.streaming.api.windowing.time.Time;
-import org.junit.Test;
-import sources.SyntheticEventTimeSource;
-import sources.WorldCupSource;
 
-import static datatypes.InternalStream.initializeCoordinator;
+import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+
+import org.junit.Test;
+
 
 public class CustomOperator {
 

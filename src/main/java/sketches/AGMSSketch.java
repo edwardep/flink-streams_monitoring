@@ -92,6 +92,6 @@ public class AGMSSketch {
 
     @Override
     public int hashCode() {
-        return Arrays.hashCode(sketchVector);
+        return Arrays.deepHashCode(sketchVector);
     }
 }

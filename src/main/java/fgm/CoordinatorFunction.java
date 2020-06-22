@@ -3,6 +3,7 @@ package fgm;
 
 import configurations.BaseConfig;
 import datatypes.InternalStream;
+import datatypes.internals.*;
 import org.apache.flink.streaming.api.functions.co.CoProcessFunction;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
@@ -11,7 +12,6 @@ import state.CoordinatorStateHandler;
 
 import java.io.IOException;
 
-import static datatypes.InternalStream.*;
 import static jobs.MonitoringJob.Q_estimate;
 
 
@@ -40,7 +40,7 @@ public class CoordinatorFunction<VectorType> {
      *  Aggregates drift vectors. Also updates the hyper-parameters.
      */
     public void handleDrift(CoordinatorStateHandler<VectorType> state,
-                            InternalStream<VectorType> input,
+                            Drift<VectorType> input,
                             CoProcessFunction.Context ctx,
                             Collector<InternalStream> collector) throws Exception {
 
@@ -210,23 +210,23 @@ public class CoordinatorFunction<VectorType> {
      */
     private void broadcast_Estimate(VectorType vector, Collector<InternalStream> collector) {
         for (int key = 0; key < cfg.uniqueStreams(); key++)
-            collector.collect(upstreamGlobalEstimate(String.valueOf(key), vector));
+            collector.collect(new GlobalEstimate<>(String.valueOf(key), vector));
     }
     public void broadcast_RequestDrift(Collector<InternalStream> collector) {
         for (int key = 0; key < cfg.uniqueStreams(); key++)
-            collector.collect(upstreamRequestDrift(String.valueOf(key)));
+            collector.collect(new RequestDrift(String.valueOf(key)));
     }
     private void broadcast_RequestZeta(Collector<InternalStream> collector) {
         for (int key = 0; key < cfg.uniqueStreams(); key++)
-            collector.collect(upstreamRequestZeta(String.valueOf(key)));
+            collector.collect(new RequestZeta(String.valueOf(key)));
     }
     private void broadcast_Quantum(Double quantum, Collector<InternalStream> collector) {
         for (int key = 0; key < cfg.uniqueStreams(); key++)
-            collector.collect(upstreamQuantum(String.valueOf(key), quantum));
+            collector.collect(new Quantum(String.valueOf(key), quantum));
     }
     private void broadcast_Lambda(Double lambda, Collector<InternalStream> collector) {
         for (int key = 0; key < cfg.uniqueStreams(); key++)
-            collector.collect(upstreamLambda(String.valueOf(key), lambda));
+            collector.collect(new Lambda(String.valueOf(key), lambda));
     }
 
     // Psi_beta = (1 - lambda) * k * phi(BalanceVector / ((1 - lambda) * k))

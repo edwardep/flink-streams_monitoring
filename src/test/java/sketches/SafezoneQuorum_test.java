@@ -113,30 +113,4 @@ public class SafezoneQuorum_test {
         for(int i = 0; i < quorum.getL().length; i++)
             assert quorum.getZetaE()[i]*quorum.getZetaE()[i] == quorum.getzCached()[i];
     }
-
-    @Test
-    public void quorum_prepare() {
-
-        double[] zE = new double[7];
-        Random rand = new Random();
-        for(int i = 0; i < 7; i++)
-            zE[i] = rand.nextDouble() - .5;
-
-        SafezoneQuorum quorum = new SafezoneQuorum(zE, 2,false);
-
-        System.out.println("zE: "+Arrays.toString(zE));
-        System.out.println("L: "+Arrays.toString(quorum.getL()));
-        System.out.println("zetaE: "+Arrays.toString(quorum.getZetaE()));
-    }
-
-    @Test
-    public void non_eikonal_cpp_comparison() {
-        double[] zEzX = {3.0,2.0,1.0,4.0,5.0,6.0,7.0,8.0,9.0};
-        double[] zX = {1d,2d,3d,4d,5d,6d,7d,8d,9d};
-
-        for(int i = 1; i <= 8; i++) {
-            SafezoneQuorum sz = new SafezoneQuorum(zEzX, i, false);
-            System.out.println("k: "+i+", sum: "+sz.median(zX));
-        }
-    }
 }

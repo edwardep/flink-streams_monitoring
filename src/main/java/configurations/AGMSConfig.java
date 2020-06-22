@@ -27,7 +27,7 @@ public class AGMSConfig implements BaseConfig<Vector, AGMSSketch, InputRecord> {
 
     @Override
     public AGMSSketch newInstance() {
-        return new AGMSSketch(3,5);
+        return new AGMSSketch(7,5000);
     }
 
     @Override
@@ -52,8 +52,7 @@ public class AGMSConfig implements BaseConfig<Vector, AGMSSketch, InputRecord> {
     @Override
     public AGMSSketch updateVector(Vector accumulator, AGMSSketch vector) {
         for (Map.Entry<Tuple2<Integer,Integer>, Double> entry : accumulator.map().entrySet()) {
-            Tuple2<Integer, Integer> raw_key = entry.getKey();
-            long key = raw_key.f0 * 10 + raw_key.f1;
+            long key = entry.getKey().hashCode(); // you could hash the 2 fields separately and concat them into a long
             vector.update(key, entry.getValue());
         }
         return vector;
