@@ -27,7 +27,7 @@ public class Seed {
 
         for(int i = 0; i < sk1.depth(); i++){
             for(int j = 0; j < sk1.width(); j++)
-                assert sk1.values()[i][j].equals(sk2.values()[i][j]);
+                assert sk1.values()[i][j] == sk2.values()[i][j];
         }
     }
 

@@ -5,11 +5,11 @@ import java.util.Arrays;
 import static sketches.SketchMath.seedVector;
 
 public class AGMSSketch {
-    private Double[][] sketchVector;
+    private double[][] sketchVector;
 
     public AGMSSketch(int depth, int width){
-        sketchVector = new Double[depth][width];
-        for(Double[] row : sketchVector)
+        sketchVector = new double[depth][width];
+        for(double[] row : sketchVector)
             Arrays.fill(row, 0d);
     }
 
@@ -43,7 +43,7 @@ public class AGMSSketch {
     }
 
 
-    public Double elementAt(int i, int j) {
+    public double elementAt(int i, int j) {
         return sketchVector[i][j];
     }
 
@@ -61,18 +61,18 @@ public class AGMSSketch {
         return seedVector;
     }
 
-    public Double[][] values() {
+    public double[][] values() {
         return sketchVector;
     }
 
-    public Double[] getSketchColumn(int w) {
-        Double[] ret = new Double[this.depth()];
+    public double[] getSketchColumn(int w) {
+        double[] ret = new double[this.depth()];
         for(int d = 0; d < this.depth(); d++)
             ret[d] = sketchVector[d][w];
         return ret;
     }
 
-    public void setSketchColumn(int w, Double[] column) {
+    public void setSketchColumn(int w, double[] column) {
         for(int d = 0; d < this.depth(); d++)
             this.sketchVector[d][w] = column[d];
     }

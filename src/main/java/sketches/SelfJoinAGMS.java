@@ -10,7 +10,7 @@ import static sketches.SketchMath.*;
 public class SelfJoinAGMS extends SafeZone {
 
     static class SelfJoin_upperBound {
-        private Double[] sqrt_T;
+        private double[] sqrt_T;
         private SafezoneQuorum sz;
 
         /**
@@ -20,16 +20,16 @@ public class SelfJoinAGMS extends SafeZone {
          * @param T The threshold value
          * @param eikonal The eikonality flag
          */
-        SelfJoin_upperBound(Double[][] E, double T, boolean eikonal) {
-            this.sqrt_T = new Double[E.length];
+        SelfJoin_upperBound(double[][] E, double T, boolean eikonal) {
+            this.sqrt_T = new double[E.length];
             Arrays.fill(this.sqrt_T, Math.sqrt(T));
 
-            Double[] dest = subtract(sqrt_T, normRow(E)); //todo: reverse order
+            double[] dest = subtract(sqrt_T, normRow(E)); //todo: reverse order
             sz = new SafezoneQuorum(dest, (E.length+1)/2, eikonal);
         }
 
-        double median(Double[][] X) {
-            Double[] z = subtract(sqrt_T, normRow(X));
+        double median(double[][] X) {
+            double[] z = subtract(sqrt_T, normRow(X));
             return sz.median(z);
         }
 
@@ -37,8 +37,8 @@ public class SelfJoinAGMS extends SafeZone {
 
     static class SelfJoin_lowerBound {
 
-        private Double[] sqrt_T;
-        private Double[][] E;
+        private double[] sqrt_T;
+        private double[][] E;
         private SafezoneQuorum sz;
 
         /**
@@ -49,12 +49,12 @@ public class SelfJoinAGMS extends SafeZone {
          * @param T       The threshold value
          * @param eikonal The eikonality flag
          */
-        SelfJoin_lowerBound(Double[][] E, double T, boolean eikonal) {
-            this.sqrt_T = new Double[E.length];
+        SelfJoin_lowerBound(double[][] E, double T, boolean eikonal) {
+            this.sqrt_T = new double[E.length];
             Arrays.fill(this.sqrt_T, (T > 0.0) ? Math.sqrt(T) : 0.0);
 
             if (sqrt_T[0] > 0.0) {
-                Double[] dest = sqrt(dotProduct(E, E)); //todo: reverse order
+                double[] dest = sqrt(dotProduct(E, E)); //todo: reverse order
                 sz = new SafezoneQuorum(subtract(dest, sqrt_T), (E.length + 1) / 2, eikonal);
 
                 // normalize E
@@ -63,9 +63,9 @@ public class SelfJoinAGMS extends SafeZone {
             //else the function returns +Infinity
         }
 
-        double median(Double[][] X) {
+        double median(double[][] X) {
             if (this.sqrt_T[0] == 0.0) return Double.POSITIVE_INFINITY;
-            Double[] z = subtract(dotProduct(X, E), sqrt_T);
+            double[] z = subtract(dotProduct(X, E), sqrt_T);
             return sz.median(z);
         }
     }
@@ -82,7 +82,7 @@ public class SelfJoinAGMS extends SafeZone {
      * @param THigh Upper threshold
      * @param eikonal   eikonality flag for computation of zeta
      */
-    public SelfJoinAGMS(Double[][] E, double TLow, double THigh, boolean eikonal) {
+    public SelfJoinAGMS(double[][] E, double TLow, double THigh, boolean eikonal) {
         lowerBound = new SelfJoin_lowerBound(E, TLow, eikonal);
         upperBound = new SelfJoin_upperBound(E, THigh, eikonal);
 
@@ -97,7 +97,7 @@ public class SelfJoinAGMS extends SafeZone {
      * @param X The drift vector
      * @return  The maximum of the two safezone values
      */
-    public double inf(Double[][] X) {
+    public double inf(double[][] X) {
         return min(lowerBound.median(X), upperBound.median(X));
     }
 }

@@ -26,9 +26,9 @@ public class Generators {
             map.put(Tuple2.of(i,i), value);
         return map;
     }
-    public static Double[] uniform_random_vector(int n, double scale, double shift) {
+    public static double[] uniform_random_vector(int n, double scale, double shift) {
         Random rand = new Random();
-        Double[] res = new Double[n];
+        double[] res = new double[n];
         for(int j=0; j < n; j++)
             res[j] =  (scale*rand.nextDouble())+shift;
         return res;
@@ -43,8 +43,8 @@ public class Generators {
         return res;
     }
 
-    public static Double[][] const_vector2(int depth, int width, double value) {
-        Double[][] res = new Double[depth][width];
+    public static double[][] const_vector2(int depth, int width, double value) {
+        double[][] res = new double[depth][width];
         for(int i = 0; i < depth; i++){
             for(int j = 0; j < width; j++)
                 res[i][j] = value;
@@ -52,8 +52,8 @@ public class Generators {
         return res;
     }
 
-    public static Double[] const_vector(int size, double value) {
-        Double[] res = new Double[size];
+    public static double[] const_vector(int size, double value) {
+        double[] res = new double[size];
         for(int i = 0; i < size; i++)
                 res[i] = value;
         return res;

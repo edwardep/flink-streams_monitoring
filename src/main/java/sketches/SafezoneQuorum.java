@@ -37,19 +37,19 @@ public class SafezoneQuorum {
     private int n;              // the number of inputs
     private int k;              // the lower bound on true inputs
     private int[] L;            // the legal inputs index from n to zetaE
-    private Double[] zetaE;     // the reference vector's zetas, where zE >= 0
-    private Double[] zCached;   // caching coefficients for faster execution
+    private double[] zetaE;     // the reference vector's zetas, where zE >= 0
+    private double[] zCached;   // caching coefficients for faster execution
     private boolean eikonal = true;
 
     public SafezoneQuorum() {}
-    public SafezoneQuorum(Double[] zE, int k, boolean eik) {
+    public SafezoneQuorum(double[] zE, int k, boolean eik) {
         prepare(zE, k);
         setEikonal(eik);
     }
 
     public void setEikonal(boolean eikonal) { this.eikonal = eikonal; }
 
-    public void prepare(Double[] zE, int k) {
+    public void prepare(double[] zE, int k) {
         this.n = zE.length;
         this.k = k;
 
@@ -61,7 +61,7 @@ public class SafezoneQuorum {
 
         // create the index and the other matrices
         L = Arrays.copyOfRange(Legal,0, pos);
-        zetaE = new Double[pos];
+        zetaE = new double[pos];
 
         int iter = 0;
         for(int index : L) zetaE[iter++] = zE[index];
@@ -77,7 +77,7 @@ public class SafezoneQuorum {
      *  The recursion performs 2C additions, C divisions, C square roots and C comparisons,
      *  where C = (l choose m)
      */
-    private double find_min(int m, int l, int b, Double[] zEzX, Double[] zE2, double SzEzX, double SzE2) {
+    private double find_min(int m, int l, int b, double[] zEzX, double[] zE2, double SzEzX, double SzE2) {
         if(m==0) return SzEzX/Math.sqrt(SzE2);
 
         double zinf = find_min(m-1, l, b+1, zEzX, zE2, SzEzX + zEzX[b], SzE2 + zE2[b]);
@@ -90,11 +90,11 @@ public class SafezoneQuorum {
         return zinf;
     }
 
-    private double zetaEikonal(Double[] zX) {
+    private double zetaEikonal(double[] zX) {
         // pre-compute zeta_i(E)*zeta_i(X) for all i in L
-        Double[] zEzX = zetaE.clone();
+        double[] zEzX = zetaE.clone();
 
-        Double[] zXL = new Double[L.length];
+        double[] zXL = new double[L.length];
         int iter = 0;
         for(int index : L) zXL[iter++] = zX[index];
 
@@ -110,10 +110,10 @@ public class SafezoneQuorum {
         return find_min(m, l, 0, zEzX, zCached, 0d,0d);
     }
 
-    private double zetaNonEikonal(Double[] zX) {
+    private double zetaNonEikonal(double[] zX) {
         int iter = 0;
-        Double[] zEzX = zetaE.clone();
-        Double[] zXL = new Double[L.length];
+        double[] zEzX = zetaE.clone();
+        double[] zXL = new double[L.length];
         for(int index : L) zXL[iter++] = zX[index];
         zEzX = multiply(zEzX, zXL);
 
@@ -127,11 +127,11 @@ public class SafezoneQuorum {
 
     // This version just caches $\zeta(E_i)^2$ (saving us some multiplications)
     public void prepareZCache() {
-        this.zCached = new Double[zetaE.length];
+        this.zCached = new double[zetaE.length];
         this.zCached = Arrays.copyOf(multiply(zetaE, zetaE), zetaE.length);
     }
 
-    public double median(Double[] zX) {
+    public double median(double[] zX) {
         return eikonal ? zetaEikonal(zX) : zetaNonEikonal(zX);
     }
 
@@ -147,11 +147,11 @@ public class SafezoneQuorum {
         return L;
     }
 
-    public Double[] getZetaE() {
+    public double[] getZetaE() {
         return zetaE;
     }
 
-    public Double[] getzCached() {
+    public double[] getzCached() {
         return zCached;
     }
 }

@@ -40,9 +40,9 @@ public class SketchMath {
         return res;
     }
 
-    public static Double[] add(Double[] col1, Double[] col2) {
+    public static double[] add(double[] col1, double[] col2) {
         assert col1.length == col2.length;
-        Double[] ret = new Double[col1.length];
+        double[] ret = new double[col1.length];
         Arrays.fill(ret,0d);
         for(int d = 0; d < col1.length; d++)
             ret[d] = col1[d] + col2[d];
@@ -60,27 +60,27 @@ public class SketchMath {
         return res;
     }
 
-    public static Double[] subtract(Double[] col1, Double[] col2) {
+    public static double[] subtract(double[] col1, double[] col2) {
         assert col1.length == col2.length;
-        Double[] ret = new Double[col1.length];
+        double[] ret = new double[col1.length];
         Arrays.fill(ret,0d);
         for(int d = 0; d < col1.length; d++)
             ret[d] = col1[d] - col2[d];
         return ret;
     }
 
-    public static Double[] multiply(Double[] col1, Double[] col2) {
+    public static double[] multiply(double[] col1, double[] col2) {
         assert col1.length == col2.length;
-        Double[] ret = new Double[col1.length];
+        double[] ret = new double[col1.length];
         Arrays.fill(ret,0d);
         for(int d = 0; d < col1.length; d++)
             ret[d] = col1[d] * col2[d];
         return ret;
     }
 
-    public static Double[] sqrt(Double[] col) {
+    public static double[] sqrt(double[] col) {
         assert col != null;
-        Double[] ret = new Double[col.length];
+        double[] ret = new double[col.length];
         Arrays.fill(ret,0d);
         for(int d = 0; d < col.length; d++)
             ret[d] = Math.sqrt(col[d]);
@@ -98,24 +98,24 @@ public class SketchMath {
         return res;
     }
 
-    public static Double[] scale(Double[] col, double scalar) {
-        Double[] ret = new Double[col.length];
+    public static double[] scale(double[] col, double scalar) {
+        double[] ret = new double[col.length];
         Arrays.fill(ret,0d);
         for(int d = 0; d < col.length; d++)
             ret[d] = col[d] * scalar;
         return ret;
     }
 
-    public static Double norm(Double[] vector) {
+    public static Double norm(double[] vector) {
         assert vector != null;
         double res = 0d;
         for (Double e : vector) res += e*e;
         return Math.sqrt(res);
     }
 
-    public static Double[] normRow(Double[][] vector) {
+    public static double[] normRow(double[][] vector) {
         assert vector != null;
-        Double[] res = new Double[vector.length];
+        double[] res = new double[vector.length];
         Arrays.fill(res, 0d);
         for(int i = 0; i < vector.length; i++) {
             for(int j = 0; j < vector[0].length; j++) {
@@ -127,8 +127,8 @@ public class SketchMath {
         return res;
     }
 
-    public static Double[][] normalize(Double[][] vector, Double[] norm) {
-        Double[][] res = new Double[vector.length][vector[0].length];
+    public static double[][] normalize(double[][] vector, double[] norm) {
+        double[][] res = new double[vector.length][vector[0].length];
         for(int w = 0; w < vector[0].length; w++){
             for(int d = 0; d < vector.length; d++){
                 if(norm[d] > 0)
@@ -138,18 +138,18 @@ public class SketchMath {
         return res;
     }
 
-    public static Double[] normalize(Double[] vector, Double[] norm) {
+    public static double[] normalize(double[] vector, double[] norm) {
         assert vector.length % norm.length == 0;
         int w = vector.length / norm.length;
-        Double[] res = new Double[vector.length];
+        double[] res = new double[vector.length];
         for(int i = 0; i < vector.length; i++)
             res[i] = vector[i] / norm[i / w];
         return res;
     }
 
-    public static Double[] dotProduct(Double[][] A, Double[][] B) {
+    public static double[] dotProduct(double[][] A, double[][] B) {
         assert (A.length == B.length) && (A[0].length == B[0].length);
-        Double[] product = new Double[A.length];
+        double[] product = new double[A.length];
         Arrays.fill(product, 0d);
         for(int w = 0; w < A[0].length; w++){
             for(int d = 0; d < A.length; d++){
@@ -159,17 +159,17 @@ public class SketchMath {
         return product;
     }
 
-    public static Double median(Double[] queryVector) {
+    public static Double median(double[] queryVector) {
         assert queryVector != null;
         Arrays.sort(queryVector);
         return queryVector[(queryVector.length)/2];
     }
 
-    public static Double median(Double[][] A, Double[][] B) {
+    public static Double median(double[][] A, double[][] B) {
         return median(dotProduct(A, B));
     }
 
-    public static Double median(Double[][] A) {
+    public static Double median(double[][] A) {
         return median(dotProduct(A, A));
     }
 
@@ -180,9 +180,9 @@ public class SketchMath {
      * @param width     the resulting vector's width
      * @return  2d vector
      */
-    public static Double[][] transform(Double[] vec, int depth, int width) {
+    public static double[][] transform(double[] vec, int depth, int width) {
         assert vec.length == depth*width;
-        Double[][] ret = new Double[depth][width];
+        double[][] ret = new double[depth][width];
         for(int i = 0; i < depth; i++) {
             System.arraycopy(vec, (i*width), ret[i], 0, width);
         }

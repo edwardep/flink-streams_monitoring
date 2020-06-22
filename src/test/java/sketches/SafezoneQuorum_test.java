@@ -16,7 +16,7 @@ public class SafezoneQuorum_test {
      */
     @Test
     public void test_quorum_est() {
-        Double[] zE = {13.0, 17.0, 26.0, 11.0, -33.0, 31.0, 52.0};
+        double[] zE = {13.0, 17.0, 26.0, 11.0, -33.0, 31.0, 52.0};
 
         // Test that the eikonal and non-eikonal safe zones are equal
         SafezoneQuorum sze = new SafezoneQuorum(zE, (zE.length+1)/2, true);
@@ -30,7 +30,7 @@ public class SafezoneQuorum_test {
         assertEquals(6,szne.getL().length);
 
         for(int i=0;i<10000;i++){
-            Double[] zX = uniform_random_vector(zE.length, 100, -50);
+            double[] zX = uniform_random_vector(zE.length, 100, -50);
 
             double we = sze.median(zX);
             double wne = szne.median(zX);
@@ -49,13 +49,13 @@ public class SafezoneQuorum_test {
         // run 10 tests
         for(int i=0; i<10; i++) {
             // produce a random reference point
-            Double[] E = uniform_random_vector(N, 9.9, 0.1);
+            double[] E = uniform_random_vector(N, 9.9, 0.1);
             SafezoneQuorum sz = new SafezoneQuorum(E, N, true);
             SafezoneQuorum szf = new SafezoneQuorum(E, N, false);
 
             // test 100 vectors
             for(int j=0; j<100; j++) {
-                Double[] z = uniform_random_vector(N, 40, -20);
+                double[] z = uniform_random_vector(N, 40, -20);
 
                 double med_e = sz.median(z);
                 double med_ne = szf.median(z);
@@ -79,7 +79,7 @@ public class SafezoneQuorum_test {
         // run 10 tests
         for(int i=0; i<1000; i++) {
             // produce a random reference point
-            Double[] E = uniform_random_vector(N, 9.9, 0.1);
+            double[] E = uniform_random_vector(N, 9.9, 0.1);
 
             SafezoneQuorum sz = new SafezoneQuorum(E, 1, true);
             SafezoneQuorum szf = new SafezoneQuorum(E,1, false);
@@ -88,7 +88,7 @@ public class SafezoneQuorum_test {
 
             // test 100 vectors
             for(int j=0; j<100; j++) {
-                Double[] z = uniform_random_vector(N, 40, -20);
+                double[] z = uniform_random_vector(N, 40, -20);
 
                 double sum = Arrays.stream(multiply(z,E)).reduce(0d, Double::sum);
 
@@ -101,7 +101,7 @@ public class SafezoneQuorum_test {
 
     @Test
     public void prepareZ_cache_cheap() {
-        Double[] zE = new Double[7];
+        double[] zE = new double[7];
         Random rand = new Random();
         for(int i = 0; i < 7; i++)
             zE[i] = rand.nextDouble() - .5;
@@ -117,7 +117,7 @@ public class SafezoneQuorum_test {
     @Test
     public void quorum_prepare() {
 
-        Double[] zE = new Double[7];
+        double[] zE = new double[7];
         Random rand = new Random();
         for(int i = 0; i < 7; i++)
             zE[i] = rand.nextDouble() - .5;
@@ -131,8 +131,8 @@ public class SafezoneQuorum_test {
 
     @Test
     public void non_eikonal_cpp_comparison() {
-        Double[] zEzX = {3.0,2.0,1.0,4.0,5.0,6.0,7.0,8.0,9.0};
-        Double[] zX = {1d,2d,3d,4d,5d,6d,7d,8d,9d};
+        double[] zEzX = {3.0,2.0,1.0,4.0,5.0,6.0,7.0,8.0,9.0};
+        double[] zX = {1d,2d,3d,4d,5d,6d,7d,8d,9d};
 
         for(int i = 1; i <= 8; i++) {
             SafezoneQuorum sz = new SafezoneQuorum(zEzX, i, false);

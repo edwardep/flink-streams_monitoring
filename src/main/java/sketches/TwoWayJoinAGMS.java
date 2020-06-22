@@ -15,7 +15,7 @@ public class TwoWayJoinAGMS {
         private double T;                           // the threshold
         private List<Bilinear2d_safezone> zeta_2d;  // d-array of 2d bilinear safezones
         private SafezoneQuorum sz;                  // median quorum
-        private Double[] hat;
+        private double[] hat;
 
         /**
          * Initialize properly
@@ -37,8 +37,8 @@ public class TwoWayJoinAGMS {
          * @param norm_xi
          * @param norm_psi
          */
-        public void setup(Double[] norm_xi, Double[] norm_psi) {
-            Double[] zeta_E = new Double[depth];
+        public void setup(double[] norm_xi, double[] norm_psi) {
+            double[] zeta_E = new double[depth];
 
             for(int i = 0; i < depth; i++){
                 // create the bilinear 2d safezones
@@ -60,12 +60,12 @@ public class TwoWayJoinAGMS {
          * @param y
          * @return
          */
-        public double zeta(Double[] x, Double[] y) {
+        public double zeta(double[] x, double[] y) {
 
-            Double[] x2 = dotProduct(transform(x,depth,width), transform(hat,depth,width));
-            Double[] y2 = dotProduct(transform(y,depth,width), transform(y,depth,width));
+            double[] x2 = dotProduct(transform(x,depth,width), transform(hat,depth,width));
+            double[] y2 = dotProduct(transform(y,depth,width), transform(y,depth,width));
 
-            Double[] zeta_X = new Double[depth];
+            double[] zeta_X = new double[depth];
             for(int i = 0; i < depth; i++)
                 zeta_X[i] = zeta_2d.get(i).bilinear2d(x2[i], sqrt(y2[i])) * sqrt(0.5);
             return sz.median(zeta_X);
@@ -86,7 +86,7 @@ public class TwoWayJoinAGMS {
      * @param THigh the upper bound
      * @param eikonal   the eikonality flag
      */
-    public TwoWayJoinAGMS(Double[] E, int d, int w, double TLow, double THigh, boolean eikonal) {
+    public TwoWayJoinAGMS(double[] E, int d, int w, double TLow, double THigh, boolean eikonal) {
         this.D = d*w;
         this.lower = new Bound(d, w, TLow, eikonal);
         this.upper = new Bound(d, w, -THigh, eikonal);
@@ -95,28 +95,28 @@ public class TwoWayJoinAGMS {
         assert TLow < THigh;
 
         // Polarize the reference vector
-        Double[] s1 = Arrays.copyOfRange(E, 0, D);
-        Double[] s2 = Arrays.copyOfRange(E, D, 2*D);
+        double[] s1 = Arrays.copyOfRange(E, 0, D);
+        double[] s2 = Arrays.copyOfRange(E, D, 2*D);
         lower.hat = add(s1, s2);
         upper.hat = subtract(s1, s2);
 
 
-        Double[] norm_lower = normRow(transform(lower.hat, d, w));
-        Double[] norm_upper = normRow(transform(upper.hat, d, w));
+        double[] norm_lower = normRow(transform(lower.hat, d, w));
+        double[] norm_upper = normRow(transform(upper.hat, d, w));
 
         lower.setup(norm_lower, norm_upper);
         upper.setup(norm_upper, norm_lower);
     }
 
-    public double inf(Double[] X) {
+    public double inf(double[] X) {
         assert X.length == 2*D;
 
         // polarize
-        Double[] s1 = Arrays.copyOfRange(X, 0, D);
-        Double[] s2 = Arrays.copyOfRange(X, D, 2*D);
+        double[] s1 = Arrays.copyOfRange(X, 0, D);
+        double[] s2 = Arrays.copyOfRange(X, D, 2*D);
 
-        Double[] x = add(s1, s2);
-        Double[] y = subtract(s1, s2);
+        double[] x = add(s1, s2);
+        double[] y = subtract(s1, s2);
 
         return Math.min(lower.zeta(x, y), upper.zeta(y, x));
     }
