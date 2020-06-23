@@ -81,8 +81,8 @@ public class AGMSConfig implements BaseConfig<Vector, AGMSSketch, InputRecord> {
 
     @Override
     public SafeZone initializeSafeZone(AGMSSketch E) {
-        double e = 0.1;
+        double e = 0.2;
         double med = median(E.values());
-        return new SelfJoinAGMS(E.values(), (1-e)*med, (1+e)*med, false);
+        return new SelfJoinAGMS(E.values(), (1-e)*med, (1+e)*med, true);
     }
 }

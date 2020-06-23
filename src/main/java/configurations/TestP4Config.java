@@ -77,11 +77,11 @@ public class TestP4Config implements BaseConfig<Vector, Vector, InputRecord> {
 
         double normEstimate = norm(estimate.map().entrySet());
 
-        // calculate f1(X) = |X+E| -(1+e)|E|
-        double f1 = norm(vec_add(estimate.map(), drift.map()).entrySet()) - (1.0 + epsilon) * normEstimate;
+        // calculate f1(X) = -|X+E| +(1+e)|E|
+        double f1 = -norm(vec_add(estimate.map(), drift.map()).entrySet()) + (1.0 + epsilon) * normEstimate;
 
-        // calculate f2(X) = -e|E| - X dot (E/|E|)
-        double f2 = -epsilon * normEstimate - dotProductMap(normalize(estimate.map().entrySet(), normEstimate), drift.map());
+        // calculate f2(X) = e|E| + X dot (E/|E|)
+        double f2 = epsilon * normEstimate + dotProductMap(normalize(estimate.map().entrySet(), normEstimate), drift.map());
 
         // select the maximum of the two values
         return Math.min(f1, f2);

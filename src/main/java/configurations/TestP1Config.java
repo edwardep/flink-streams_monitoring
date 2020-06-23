@@ -82,8 +82,8 @@ public class TestP1Config implements BaseConfig<Vector, Vector, InputRecord> {
         // calculate f1(X) = (1+e)|E| - |X+E|
         double f1 = (1.0 + epsilon) * normEstimate - norm(vec_add(estimate.map(), drift.map()).entrySet());
 
-        // calculate f2(X) = X dot (E/|E|) - e|E|
-        double f2 = - dotProductMap(normalize(estimate.map().entrySet(), normEstimate), drift.map()) - epsilon * normEstimate;
+        // calculate f2(X) = X dot (E/|E|) + e|E|
+        double f2 = dotProductMap(normalize(estimate.map().entrySet(), normEstimate), drift.map()) + epsilon * normEstimate;
 
         // select the minimum of the two values
         return Math.min(f1, f2);

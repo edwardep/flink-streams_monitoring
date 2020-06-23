@@ -152,7 +152,7 @@ public class WorkerFunction_test {
                 fgm.newRound(state, hyperparams);
 
                 // validate
-                assertEquals("{(0,1)=10.0}", state.getEstimate().toString());
+                assertEquals("{(0,0)=10.0}", state.getEstimate().toString());
                 assertEquals(1.0, state.getQuantum());
                 assertEquals(conf.safeFunction(new Vector(), (Vector) state.getEstimate(), null), state.getLastZeta());
                 assertTrue(state.getSubRoundPhase());
@@ -202,7 +202,7 @@ public class WorkerFunction_test {
 
                 // setup: at some point in time..
                 state.setDrift(new Vector(generateSequence(1,0.5)));
-                state.setZeta(-3.0);
+                state.setZeta(3.0);
                 state.setQuantum(1.0);
                 state.setSubRoundInit(false);
 
@@ -210,7 +210,7 @@ public class WorkerFunction_test {
                 fgm.subRoundProcess(state, collector);
 
                 // validate
-                assertEquals(-1.5, state.getFi());
+                assertEquals(1.5, state.getFi());
                 assertEquals((Integer) 1, state.getLocalCounter());
             }
 
