@@ -44,7 +44,7 @@ public class CoordinatorFunction<VectorType> {
                             CoProcessFunction.Context ctx,
                             Collector<InternalStream> collector) throws Exception {
 
-        if(state.getNodeCount() < cfg.uniqueStreams())
+        if(state.getNodeCount() < cfg.workers())
         {
             state.setNodeCount(state.getNodeCount() + 1);
 
@@ -56,7 +56,7 @@ public class CoordinatorFunction<VectorType> {
         }
 
         /*  Received all */
-        if(state.getNodeCount().equals(cfg.uniqueStreams()))
+        if(state.getNodeCount().equals(cfg.workers()))
         {
             state.setNodeCount(0);
 
@@ -88,7 +88,7 @@ public class CoordinatorFunction<VectorType> {
 
         VectorType vec = cfg.addVectors(
                 state.getEstimate(),
-                cfg.scaleVector(state.getAggregateState(), 1.0/cfg.uniqueStreams()));
+                cfg.scaleVector(state.getAggregateState(), 1.0/cfg.workers()));
 
         state.setEstimate(vec);
         state.setSafeZone(cfg.initializeSafeZone(vec));
@@ -127,18 +127,18 @@ public class CoordinatorFunction<VectorType> {
                            Collector<InternalStream> collector) throws Exception {
 
         /*  Aggregate the incoming Phi(Xi) values to Psi */
-        if(state.getNodeCount() < cfg.uniqueStreams())
+        if(state.getNodeCount() < cfg.workers())
         {
             state.setNodeCount(state.getNodeCount() + 1);
             state.setPsi(state.getPsi() + payload);
         }
 
         /*  Received all */
-        if(state.getNodeCount().equals(cfg.uniqueStreams()))
+        if(state.getNodeCount().equals(cfg.workers()))
         {
             state.setNodeCount(0);
 
-            double safeThreshold = cfg.getMQF()*cfg.uniqueStreams()*cfg.safeFunction(
+            double safeThreshold = cfg.getMQF()*cfg.workers()*cfg.safeFunction(
                     cfg.newInstance(),
                     state.getEstimate(),
                     state.getSafeZone());
@@ -146,7 +146,7 @@ public class CoordinatorFunction<VectorType> {
             if(state.getPsi() + state.getPsiBeta() > safeThreshold)
             {
                 /*  Configuration is SAFE, broadcast new Quantum */
-                Double quantum = (state.getPsi() + state.getPsiBeta()) / (2 * cfg.uniqueStreams());
+                Double quantum = (state.getPsi() + state.getPsiBeta()) / (2 * cfg.workers());
 
                 broadcast_Quantum(quantum, collector);
 
@@ -189,7 +189,7 @@ public class CoordinatorFunction<VectorType> {
         state.setGlobalCounter(state.getGlobalCounter() + payload);
 
         /*  If C > k : finish subRound */
-        if(state.getGlobalCounter() > cfg.uniqueStreams()) {
+        if(state.getGlobalCounter() > cfg.workers()) {
 
             broadcast_RequestZeta(collector);
 
@@ -209,31 +209,31 @@ public class CoordinatorFunction<VectorType> {
      *
      */
     private void broadcast_Estimate(VectorType vector, Collector<InternalStream> collector) {
-        for (int key = 0; key < cfg.uniqueStreams(); key++)
+        for (int key = 0; key < cfg.workers(); key++)
             collector.collect(new GlobalEstimate<>(String.valueOf(key), vector));
     }
     public void broadcast_RequestDrift(Collector<InternalStream> collector) {
-        for (int key = 0; key < cfg.uniqueStreams(); key++)
+        for (int key = 0; key < cfg.workers(); key++)
             collector.collect(new RequestDrift(String.valueOf(key)));
     }
     private void broadcast_RequestZeta(Collector<InternalStream> collector) {
-        for (int key = 0; key < cfg.uniqueStreams(); key++)
+        for (int key = 0; key < cfg.workers(); key++)
             collector.collect(new RequestZeta(String.valueOf(key)));
     }
     private void broadcast_Quantum(Double quantum, Collector<InternalStream> collector) {
-        for (int key = 0; key < cfg.uniqueStreams(); key++)
+        for (int key = 0; key < cfg.workers(); key++)
             collector.collect(new Quantum(String.valueOf(key), quantum));
     }
     private void broadcast_Lambda(Double lambda, Collector<InternalStream> collector) {
-        for (int key = 0; key < cfg.uniqueStreams(); key++)
+        for (int key = 0; key < cfg.workers(); key++)
             collector.collect(new Lambda(String.valueOf(key), lambda));
     }
 
     // Psi_beta = (1 - lambda) * k * phi(BalanceVector / ((1 - lambda) * k))
     private void updatePsiBeta(CoordinatorStateHandler<VectorType> state) throws Exception {
         state.setPsiBeta(
-                (1-lambda)*cfg.uniqueStreams()*cfg.safeFunction(
-                        cfg.scaleVector(state.getAggregateState(), 1/((1-lambda)*cfg.uniqueStreams())),
+                (1-lambda)*cfg.workers()*cfg.safeFunction(
+                        cfg.scaleVector(state.getAggregateState(), 1/((1-lambda)*cfg.workers())),
                         state.getEstimate(), state.getSafeZone()));
     }
 }

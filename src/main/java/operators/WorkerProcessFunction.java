@@ -33,7 +33,7 @@ public class WorkerProcessFunction<AccType, VectorType>  extends KeyedCoProcessF
 
     @Override
     public void processElement2(InternalStream input, Context context, Collector<InternalStream> collector) throws Exception {
-       // System.out.println("id:"+context.getCurrentKey()+", type:"+input.getClass().getName());
+        //System.out.println("id:"+context.getCurrentKey()+", type:"+input.getClass().getName());
 
         if (GlobalEstimate.class.equals(input.getClass())) {
             fgm.newRound(state, ((GlobalEstimate<VectorType>) input).getVector());

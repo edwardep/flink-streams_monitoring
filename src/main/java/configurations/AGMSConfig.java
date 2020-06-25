@@ -21,7 +21,7 @@ public class AGMSConfig implements BaseConfig<Vector, AGMSSketch, InputRecord> {
     }
 
     @Override
-    public Integer uniqueStreams() {
+    public Integer workers() {
         return 10;
     }
 

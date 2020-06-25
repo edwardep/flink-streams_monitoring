@@ -1,7 +1,7 @@
 package test_utils;
 
 import configurations.BaseConfig;
-import configurations.FgmConfig;
+import configurations.TestP1Config;
 import datatypes.InputRecord;
 import datatypes.Vector;
 import org.apache.flink.api.common.functions.AggregateFunction;
@@ -23,7 +23,7 @@ import java.io.IOException;
 
 
 public class Validation {
-    private FgmConfig cfg = new FgmConfig();
+    private TestP1Config cfg = new TestP1Config();
 
     @Test
     public void centralized() throws Exception {
@@ -39,7 +39,7 @@ public class Validation {
 
 
         KeyedStream<InputRecord, String> keyedStream = env
-                .addSource(new WorldCupSource(defInputPath, cfg)) //fixme: HASHING Server id!!
+                .addSource(new WorldCupSource(defInputPath, cfg))
                 .map(x -> x)
                 .returns(TypeInformation.of(InputRecord.class))
                 .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InputRecord>() {
@@ -72,7 +72,7 @@ public class Validation {
             if(iterable.iterator().hasNext()){
                 Vector vec = iterable.iterator().next();
                 System.out.println("size:"+vec.map().size());
-                out.collect(cfg.queryFunction(cfg.scaleVector(vec, 1.0/cfg.uniqueStreams()),ctx.window().getEnd()));
+                out.collect(cfg.queryFunction(cfg.scaleVector(vec, 1.0/cfg.workers()),ctx.window().getEnd()));
             }
         }
     }

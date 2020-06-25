@@ -22,6 +22,7 @@ import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.util.OutputTag;
+import sources.WorldCupMapSource;
 import sources.WorldCupSource;
 
 
@@ -33,11 +34,23 @@ public class MonitoringJob {
 
     public static void main(String[] args) throws Exception {
 
+        /*
+            /usr/local/flink/bin/flink run -c jobs.MonitoringJob flink-fgm-1.0.jar \
+            --input "hdfs://clu01.softnet.tuc.gr:8020/user/eepure/wc_day46_1.txt" \
+            --output "hdfs://clu01.softnet.tuc.gr:8020/user/eepure/wc_part1_test_03.txt" \
+            --p 4 \
+            --jobName "fgm-w3600-s5-wwu" \
+            --window 3600 \
+            --slide 5\
+            --warmup 5
+         */
+
+
         int defParallelism = 4; // Flink Parallelism
         int defWindowSize = 3600; //  the size of the sliding window in seconds
         int defSlideSize = 5; //  the sliding interval in milliseconds
 
-        long defWarmup = 3000;  //  warmup duration in milliseconds
+        int defWarmup = 5;  //  warmup duration in seconds (processing time)
 
         //String defInputPath = "hdfs://clu01.softnet.tuc.gr:8020/user/eepure/wc_day46_1.txt";
         String defInputPath = "D:/Documents/WorldCup_tools/ita_public_tools/output/wc_day46_1.txt";
@@ -68,7 +81,7 @@ public class MonitoringJob {
                 .addSource(new SourceFunction<InternalStream>() {
                     @Override
                     public void run(SourceContext<InternalStream> sourceContext) throws Exception {
-                        sourceContext.collect(new InitCoordinator(parameters.getLong("warmup", defWarmup)));
+                        sourceContext.collect(new InitCoordinator(parameters.getInt("warmup", defWarmup)));
                     }
                     @Override
                     public void cancel() { }
@@ -80,13 +93,15 @@ public class MonitoringJob {
         /**
          *  Reading line by line from file and streaming POJOs
          */
-//        DataStream<InputEvent> streamFromFile = env
-//                .readTextFile(parameters.get("input", defInputPath))
-//                .flatMap(new WorldCupSourceHDFS());
         DataStream<InputRecord> streamFromFile = env
-                .addSource(new WorldCupSource(defInputPath, config))
-                .map(x -> x)
-                .returns(TypeInformation.of(InputRecord.class));
+                .readTextFile(parameters.get("input", defInputPath))
+                .flatMap(new WorldCupMapSource(config));
+
+        streamFromFile.print();
+//        DataStream<InputRecord> streamFromFile = env
+//                .addSource(new WorldCupSource(defInputPath, config))
+//                .map(x -> x)
+//                .returns(TypeInformation.of(InputRecord.class));
 
         /**
          *  Creating Iterative Stream

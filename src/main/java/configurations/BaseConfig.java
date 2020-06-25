@@ -24,12 +24,12 @@ public interface BaseConfig<AccType, VectorType, RecordType> extends Serializabl
 
     /**
      * Used internally in synchronization processes. This translates to 'k' in the fgm algorithm and it indicates<br>
-     * the unique stream ids. The true parallelism will depend on Flink job parametrization.<br>
+     * the number of workers (sites) <br>
      * Usage: "return this.keyGroup.size();"
      *
-     * @return the size of the keyGroup list
+     * @return the number of sites
      */
-    Integer uniqueStreams();
+    Integer workers();
 
     /**
      * You can override this method in order to set the desired monitoring Quantization factor.<br>

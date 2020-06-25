@@ -20,7 +20,7 @@ public class TestP4Config implements BaseConfig<Vector, Vector, InputRecord> {
     }
 
     @Override
-    public Integer uniqueStreams() {
+    public Integer workers() {
         return 4;
     }
 

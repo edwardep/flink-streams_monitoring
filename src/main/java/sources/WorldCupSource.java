@@ -40,8 +40,8 @@ public class WorldCupSource implements SourceFunction<InputRecord> {
 
                 /*
                  *  InputRecord Object:
-                 *      timestamp = this is used by the timestamp extractor
                  *      streamId = all Worker-related keyBy() operations are done on this field
+                 *      timestamp = this is used by the timestamp extractor
                  *      Tuple2.of( Tuple2.of(ClientID, request_type) ,  1.0 )   -> (key, val)
                  */
                 InputRecord event = new InputRecord(
@@ -81,9 +81,10 @@ public class WorldCupSource implements SourceFunction<InputRecord> {
     }
 
     private String hashStreamID(String streamID) {
-        return String.valueOf(Integer.parseInt(streamID) % cfg.uniqueStreams());
+        return String.valueOf(Integer.parseInt(streamID) % cfg.workers());
     }
 
+    // these are the fields of the world cup data set. The enum is simply used for code readability.
     private enum WCStruct {
         timestamp,
         clientID,

@@ -3,13 +3,13 @@ package datatypes.internals;
 import datatypes.InternalStream;
 
 public class InitCoordinator extends InternalStream {
-    private long warmup;
-    public InitCoordinator(long warmup) {
+    private int warmup;
+    public InitCoordinator(int warmup) {
         this.warmup = warmup;
     }
 
 
-    public long getWarmup() {
+    public int getWarmup() {
         return warmup;
     }
 
