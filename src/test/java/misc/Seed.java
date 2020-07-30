@@ -31,17 +31,6 @@ public class Seed {
         }
     }
 
-    @Test
-    public void sketch_SeedVector_test() {
-
-        AGMSSketch sk1 = new AGMSSketch(9, 5);
-        AGMSSketch sk2 = new AGMSSketch(3, 5);
-
-        for(int i = 0; i < 6; i++){
-            for(int j = 0; j < sk1.depth(); j++)
-                assert sk1.getSeedVector()[i][j].equals(sk2.getSeedVector()[i][j]);
-        }
-    }
 
     @Test
     public void sketch_init_performance() {

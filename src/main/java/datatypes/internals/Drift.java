@@ -27,6 +27,14 @@ public class Drift<VectorType> extends InternalStream {
                 '}';
     }
 
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    public void setVector(VectorType vector) {
+        this.vector = vector;
+    }
+
     @Override
     public String getStreamID() {
         return null;

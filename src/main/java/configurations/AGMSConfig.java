@@ -27,7 +27,7 @@ public class AGMSConfig implements BaseConfig<Vector, AGMSSketch, InputRecord> {
 
     @Override
     public AGMSSketch newInstance() {
-        return new AGMSSketch(7,5000);
+        return new AGMSSketch(7,3000);
     }
 
     @Override

@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Objects;
 
 public class Vector implements Serializable {
-    private Map<Tuple2<Integer, Integer>, Double> vector;
+    private final Map<Tuple2<Integer, Integer>, Double> vector;
 
     public Vector() {
         this.vector = new HashMap<>();
@@ -25,10 +25,6 @@ public class Vector implements Serializable {
         return vector.getOrDefault(key, 0d);
     }
 
-    public boolean isEmpty() {
-        return vector.isEmpty();
-    }
-
     public String toString() {
         return vector.toString();
     }
@@ -38,7 +34,7 @@ public class Vector implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Vector vector1 = (Vector) o;
-        return Objects.equals(vector, vector1.vector);
+        return Objects.deepEquals(vector, vector1.vector);
     }
 
     @Override

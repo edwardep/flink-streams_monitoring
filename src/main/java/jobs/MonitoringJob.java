@@ -7,7 +7,6 @@ import configurations.TestP4Config;
 import datatypes.Accumulator;
 import datatypes.InputRecord;
 import datatypes.InternalStream;
-import datatypes.Vector;
 import datatypes.internals.InitCoordinator;
 import operators.*;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
@@ -22,8 +21,15 @@ import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.util.OutputTag;
+import sources.SyntheticEventTimeSource;
 import sources.WorldCupMapSource;
 import sources.WorldCupSource;
+
+import java.util.Properties;
+import java.util.Random;
+
+import static kafka.KafkaUtils.createConsumerInternal;
+import static kafka.KafkaUtils.createProducerInternal;
 
 
 public class MonitoringJob {
@@ -46,8 +52,8 @@ public class MonitoringJob {
          */
 
 
-        int defParallelism = 4; // Flink Parallelism
-        int defWindowSize = 3600; //  the size of the sliding window in seconds
+        int defParallelism = 1; // Flink Parallelism
+        int defWindowSize = 1000; //  the size of the sliding window in seconds
         int defSlideSize = 5; //  the sliding interval in milliseconds
 
         int defWarmup = 5;  //  warmup duration in seconds (processing time)
@@ -55,7 +61,8 @@ public class MonitoringJob {
         //String defInputPath = "hdfs://clu01.softnet.tuc.gr:8020/user/eepure/wc_day46_1.txt";
         String defInputPath = "D:/Documents/WorldCup_tools/ita_public_tools/output/wc_day46_1.txt";
         //String defInputPath = "C:/Users/eduar/IdeaProjects/flink-fgm/logs/SyntheticDataSet2.txt";
-        String defOutputPath = "C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/outputSk.txt";
+        //String defOutputPath = "C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/outputSk.txt";
+        String defOutputPath = "C:/Users/Mirto/IdeaProjects/flink-streams_monitoring/logs/outputSk.txt";
         String defJobName = "FGM-pipeline";
 
 
@@ -64,6 +71,18 @@ public class MonitoringJob {
         env.getConfig().setGlobalJobParameters(parameters);
         env.setParallelism(parameters.getInt("p", defParallelism));
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
+
+        /**
+         *  Kafka Configuration
+         */
+        Random rand = new Random();
+        String feedbackTopic = "feedback";
+        Properties consumerProps = new Properties();
+        consumerProps.setProperty("bootstrap.servers", "localhost:9092");
+        consumerProps.setProperty("group.id", "group"+rand.nextLong());
+
+        Properties producerProps = new Properties();
+        producerProps.setProperty("bootstrap.servers", "localhost:9092");
 
 
         /**
@@ -93,36 +112,37 @@ public class MonitoringJob {
         /**
          *  Reading line by line from file and streaming POJOs
          */
-        DataStream<InputRecord> streamFromFile = env
-                .readTextFile(parameters.get("input", defInputPath))
-                .flatMap(new WorldCupMapSource(config));
-
-        streamFromFile.print();
 //        DataStream<InputRecord> streamFromFile = env
-//                .addSource(new WorldCupSource(defInputPath, config))
-//                .map(x -> x)
-//                .returns(TypeInformation.of(InputRecord.class));
+//                .readTextFile(parameters.get("input", defInputPath))
+//                .flatMap(new WorldCupMapSource(config));
+//
+//        streamFromFile.print();
+        DataStream<InputRecord> streamFromFile = env
+                .addSource(new SyntheticEventTimeSource())
+                .map(x -> x)
+                .returns(TypeInformation.of(InputRecord.class));
 
         /**
          *  Creating Iterative Stream
          */
-        IterativeStream.ConnectedIterativeStreams<InputRecord, InternalStream > iteration = streamFromFile
-                .iterate()
-                .withFeedbackType(InternalStream.class);
+        DataStream<InternalStream> iteration = env.addSource(createConsumerInternal(feedbackTopic, consumerProps));
+//        IterativeStream.ConnectedIterativeStreams<InputRecord, InternalStream > iteration = streamFromFile
+//                .iterate()
+//                .withFeedbackType(InternalStream.class);
 
 
         /**
          *  This is the iteration Head. It merges the input and the feedback streams and forwards them to the main
          *  and the side output respectively.
          */
-        SingleOutputStreamOperator<InputRecord> iteration_input = iteration
-                .process(new IterationHead());
+//        SingleOutputStreamOperator<InputRecord> iteration_input = iteration
+//                .process(new IterationHead());
 
 
         /**
          *  Ascending Timestamp assigner & Sliding Window operator
          */
-        SingleOutputStreamOperator<InternalStream> worker = iteration_input
+        SingleOutputStreamOperator<InternalStream> worker = streamFromFile
                 .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InputRecord>() {
                     @Override
                     public long extractAscendingTimestamp(InputRecord inputRecord) {
@@ -141,7 +161,7 @@ public class MonitoringJob {
                  * Input2 -> Feedback stream from IterationHead side-output
                  * Output -> Connects to Coordinator's Input1
                  */
-                .connect(iteration_input.getSideOutput(feedback))
+                .connect(iteration)
                 .keyBy(Accumulator::getStreamID, InternalStream::getStreamID)
                 .process(new WorkerProcessFunction<>(config));
 
@@ -154,7 +174,7 @@ public class MonitoringJob {
          */
         SingleOutputStreamOperator<InternalStream> coordinator = worker
                 .connect(coordinator_init)
-                .keyBy(stream->stream.unionKey(), init->init.unionKey())
+                .keyBy(InternalStream::unionKey, InternalStream::unionKey)
                 .process(new CoordinatorProcessFunction<>(config))
                 .setParallelism(1)
                 .name("coordinator");
@@ -172,7 +192,8 @@ public class MonitoringJob {
         /**
          *  closing iteration with feedback stream
          */
-        iteration.closeWith(feedback);
+        feedback.addSink(createProducerInternal(feedbackTopic, producerProps));
+        //iteration.closeWith(feedback);
 
         /**
          *  Writing output (round_timestamp, Q(E)) to text file

@@ -72,8 +72,8 @@ public class SelfJoinAGMS extends SafeZone {
 
     /***** SelfJoinAGMS class *****/
 
-    private SelfJoin_lowerBound lowerBound;     // safezone for sk^2 >= TLow
-    private SelfJoin_upperBound upperBound;     // safezone for sk^2 <= THigh
+    private final SelfJoin_lowerBound lowerBound;     // safezone for sk^2 >= TLow
+    private final SelfJoin_upperBound upperBound;     // safezone for sk^2 <= THigh
 
     /**
      * The self-join safezone constructor for AGMS sketches.

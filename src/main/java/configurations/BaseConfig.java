@@ -1,15 +1,8 @@
 package configurations;
 
-import com.esotericsoftware.kryo.NotNull;
 import fgm.SafeZone;
-import org.apache.commons.rng.UniformRandomProvider;
-import org.apache.commons.rng.simple.RandomSource;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-
-import javax.annotation.Nonnull;
 import java.io.Serializable;
-import java.util.List;
-import java.util.Vector;
 
 
 public interface BaseConfig<AccType, VectorType, RecordType> extends Serializable {

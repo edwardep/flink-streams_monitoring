@@ -16,11 +16,11 @@ public class SyntheticEventTimeSource implements SourceFunction<InputRecord> {
     private Random rand2 = new Random(1234);
     private int count = 0;
 
-    private int records = 100000;
-    private int recordsPerSec = 1000/100;
+    private int records = 1000000;
+    private int recordsPerSec = 10;
     private int keyRandomness = 100;
     private int gap = 5;
-    private int groupSize = 4;
+    private int groupSize = 10;
 
     public SyntheticEventTimeSource(int records,int recordsPerSec, int keyRandomness, int gap, int groupSize) {
         this.records = records;

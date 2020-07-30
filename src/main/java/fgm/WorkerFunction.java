@@ -43,11 +43,12 @@ public class WorkerFunction<AccType, VectorType> implements Serializable {
                          VectorType vector) throws Exception {
 
         state.setEstimate(vector);
-        state.setSafeZone(cfg.initializeSafeZone(vector));
+        SafeZone sz = cfg.initializeSafeZone(vector);
+        state.setSafeZone(sz);
 
         state.setLambda(1.0);
 
-        double fi0 = cfg.safeFunction(cfg.newInstance(), state.getEstimate(), state.getSafeZone());
+        double fi0 = cfg.safeFunction(cfg.newInstance(), state.getEstimate(), sz);
 
         state.setLastZeta(fi0);
 
