@@ -35,7 +35,7 @@ public class Validation {
         String defInputPath = "D:/Documents/WorldCup_tools/ita_public_tools/output/wc_day46_1.txt";
 
         int slide = 5;
-        int window = 3600;
+        int window = 1000;
 
 
         KeyedStream<InputRecord, String> keyedStream = env
@@ -53,11 +53,11 @@ public class Validation {
         keyedStream
                 .timeWindow(Time.seconds(window), Time.seconds(slide))
                 .aggregate(new IncAggregationDef(cfg), new WindowFunctionDef(cfg))
-                .writeAsText("C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/validation_test.txt", FileSystem.WriteMode.OVERWRITE);
+                .writeAsText("C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/validation_1000.txt", FileSystem.WriteMode.OVERWRITE);
 
 
 
-        //env.execute();
+        env.execute();
     }
     public static class WindowFunctionDef extends ProcessWindowFunction<Vector, String, String, TimeWindow> {
 
@@ -71,8 +71,7 @@ public class Validation {
         public void process(String key, Context ctx, Iterable<Vector> iterable, Collector<String> out) throws IOException {
             if(iterable.iterator().hasNext()){
                 Vector vec = iterable.iterator().next();
-                System.out.println("size:"+vec.map().size());
-                out.collect(cfg.queryFunction(cfg.scaleVector(vec, 1.0/cfg.workers()),ctx.window().getEnd()));
+                out.collect(cfg.queryFunction(cfg.scaleVector(vec, 1.0/10),ctx.window().getEnd()));
             }
         }
     }

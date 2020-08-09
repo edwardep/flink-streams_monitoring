@@ -52,8 +52,8 @@ public class MonitoringJob {
          */
 
 
-        int defParallelism = 1; // Flink Parallelism
-        int defWindowSize = 1000; //  the size of the sliding window in seconds
+        int defParallelism = 4; // Flink Parallelism
+        int defWindowSize = 3600; //  the size of the sliding window in seconds
         int defSlideSize = 5; //  the sliding interval in milliseconds
 
         int defWarmup = 5;  //  warmup duration in seconds (processing time)
@@ -62,7 +62,7 @@ public class MonitoringJob {
         String defInputPath = "D:/Documents/WorldCup_tools/ita_public_tools/output/wc_day46_1.txt";
         //String defInputPath = "C:/Users/eduar/IdeaProjects/flink-fgm/logs/SyntheticDataSet2.txt";
         //String defOutputPath = "C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/outputSk.txt";
-        String defOutputPath = "C:/Users/Mirto/IdeaProjects/flink-streams_monitoring/logs/outputSk.txt";
+        String defOutputPath = "C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/outputSk_1h_4.txt";
         String defJobName = "FGM-pipeline";
 
 
@@ -115,17 +115,19 @@ public class MonitoringJob {
 //        DataStream<InputRecord> streamFromFile = env
 //                .readTextFile(parameters.get("input", defInputPath))
 //                .flatMap(new WorldCupMapSource(config));
-//
+
 //        streamFromFile.print();
         DataStream<InputRecord> streamFromFile = env
-                .addSource(new SyntheticEventTimeSource())
+                .addSource(new WorldCupSource(defInputPath, config))
                 .map(x -> x)
                 .returns(TypeInformation.of(InputRecord.class));
 
         /**
          *  Creating Iterative Stream
          */
-        DataStream<InternalStream> iteration = env.addSource(createConsumerInternal(feedbackTopic, consumerProps));
+        DataStream<InternalStream> iteration = env
+                .addSource(createConsumerInternal(feedbackTopic, consumerProps))
+                .name("Iteration Src");
 //        IterativeStream.ConnectedIterativeStreams<InputRecord, InternalStream > iteration = streamFromFile
 //                .iterate()
 //                .withFeedbackType(InternalStream.class);
@@ -192,7 +194,9 @@ public class MonitoringJob {
         /**
          *  closing iteration with feedback stream
          */
-        feedback.addSink(createProducerInternal(feedbackTopic, producerProps));
+        feedback
+                .addSink(createProducerInternal(feedbackTopic, producerProps))
+                .name("Iteration Sink");
         //iteration.closeWith(feedback);
 
         /**
@@ -201,7 +205,8 @@ public class MonitoringJob {
         coordinator
                 .getSideOutput(Q_estimate)
                 .writeAsText(parameters.get("output", defOutputPath), FileSystem.WriteMode.OVERWRITE)
-                .setParallelism(1);
+                .setParallelism(1)
+                .name("Output");
 
 
         System.out.println(env.getExecutionPlan());

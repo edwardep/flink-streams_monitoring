@@ -30,7 +30,7 @@ public class CoordinatorProcessFunction<VectorType> extends CoProcessFunction<In
 
     @Override
     public void processElement1(InternalStream input, Context ctx, Collector<InternalStream> collector) throws Exception {
-        System.out.println(input.getClass());
+        //System.out.println(input.getClass());
         if (Drift.class.equals(input.getClass())) {
             fgm.handleDrift(state, (Drift<VectorType>) input, ctx, collector);
         } else if (Zeta.class.equals(input.getClass())) {
