@@ -21,6 +21,7 @@ public class WindowFunction<Acc> extends ProcessWindowFunction<Acc, InternalStre
     }
     @Override
     public void process(String key, Context context, Iterable<Acc> iterable, Collector<InternalStream> out) throws Exception {
+        System.out.println(context.currentWatermark());
         if(iterable.iterator().hasNext()){
             Acc accumulator = iterable.iterator().next();
             Acc window_drift;

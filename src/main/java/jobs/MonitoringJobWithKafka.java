@@ -4,22 +4,30 @@ import configurations.AGMSConfig;
 import datatypes.InputRecord;
 import datatypes.InternalStream;
 import datatypes.internals.InitCoordinator;
-import operators.*;
+import operators.CoordinatorProcessFunction;
+import operators.IncAggregation;
+import operators.WindowFunction;
+import operators.WorkerProcessFunction;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.datastream.IterativeStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
+import org.apache.flink.streaming.api.functions.ProcessFunction;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
+import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.streaming.api.windowing.time.Time;
+import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
 import sources.WorldCupMapSource;
 import sources.WorldCupSource;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Properties;
 import java.util.Random;
 
@@ -27,10 +35,9 @@ import static kafka.KafkaUtils.createConsumerInternal;
 import static kafka.KafkaUtils.createProducerInternal;
 
 
-public class MonitoringJob {
+public class MonitoringJobWithKafka {
 
-    public static final OutputTag<String> Q_estimate = new OutputTag<String>("estimate-side-output"){};
-    public static final OutputTag<InternalStream> feedback = new OutputTag<InternalStream>("feedback-side-input"){};
+    private static final OutputTag<String> Q_estimate = new OutputTag<String>("estimate-side-output"){};
 
 
     public static void main(String[] args) throws Exception {
@@ -66,11 +73,13 @@ public class MonitoringJob {
         env.getConfig().setGlobalJobParameters(parameters);
         env.setParallelism(parameters.getInt("p", defParallelism));
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
+        env.getConfig().setAutoWatermarkInterval(5);
 
         /**
          *  Kafka Configuration
          */
         Random rand = new Random();
+        String feedbackTopic = "feedback";
         Properties consumerProps = new Properties();
         consumerProps.setProperty("bootstrap.servers", "localhost:9092");
         consumerProps.setProperty("group.id", "group"+rand.nextLong());
@@ -108,9 +117,14 @@ public class MonitoringJob {
          */
         DataStream<InputRecord> streamFromFile = env
                 .readTextFile(parameters.get("input", defInputPath))
-                .flatMap(new WorldCupMapSource(config));
+                .flatMap(new WorldCupMapSource(config))
+                .process(new ProcessFunction<InputRecord, InputRecord>() {
+                    @Override
+                    public void processElement(InputRecord inputRecord, Context context, Collector<InputRecord> collector) throws Exception {
+                        collector.collect(inputRecord);
+                    }
+                });
 
-//        streamFromFile.print();
 //        DataStream<InputRecord> streamFromFile = env
 //                .addSource(new WorldCupSource(defInputPath, config))
 //                .map(x -> x)
@@ -119,23 +133,15 @@ public class MonitoringJob {
         /**
          *  Creating Iterative Stream
          */
-        IterativeStream.ConnectedIterativeStreams<InputRecord, InternalStream > iteration = streamFromFile
-                .iterate()
-                .withFeedbackType(InternalStream.class);
-
-
-        /**
-         *  This is the iteration Head. It merges the input and the feedback streams and forwards them to the main
-         *  and the side output respectively.
-         */
-        SingleOutputStreamOperator<InputRecord> iteration_input = iteration
-                .process(new IterationHead());
+        DataStream<InternalStream> iteration = env
+                .addSource(createConsumerInternal(feedbackTopic, consumerProps))
+                .name("Iteration Src");
 
 
         /**
          *  Ascending Timestamp assigner & Sliding Window operator
          */
-        SingleOutputStreamOperator<InternalStream> worker = iteration_input
+        SingleOutputStreamOperator<InternalStream> worker = streamFromFile
                 .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InputRecord>() {
                     @Override
                     public long extractAscendingTimestamp(InputRecord inputRecord) {
@@ -159,7 +165,7 @@ public class MonitoringJob {
                  * Input2 -> Feedback stream from IterationHead side-output
                  * Output -> Connects to Coordinator's Input1
                  */
-                .connect(iteration_input.getSideOutput(feedback))
+                .connect(iteration)
                 .keyBy(InternalStream::getStreamID, InternalStream::getStreamID)
                 .process(new WorkerProcessFunction<>(config));
 
@@ -190,7 +196,9 @@ public class MonitoringJob {
         /**
          *  closing iteration with feedback stream
          */
-        iteration.closeWith(feedback);
+        feedback
+                .addSink(createProducerInternal(feedbackTopic, producerProps))
+                .name("Iteration Sink");
 
         /**
          *  Writing output (round_timestamp, Q(E)) to text file

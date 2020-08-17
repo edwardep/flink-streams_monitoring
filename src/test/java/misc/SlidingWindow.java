@@ -1,5 +1,6 @@
 package misc;
 
+import configurations.AGMSConfig;
 import configurations.TestP1Config;
 import datatypes.InputRecord;
 import datatypes.InternalStream;
@@ -8,6 +9,7 @@ import datatypes.internals.WindowSlide;
 import operators.IncAggregation;
 import operators.WindowFunction;
 import org.apache.flink.api.common.functions.AggregateFunction;
+import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -20,190 +22,62 @@ import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExt
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
 import org.apache.flink.util.Collector;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.Test;
 import sources.SyntheticEventTimeSource;
 
+import sources.WorldCupMapSource;
 import test_utils.Testable;
 
 import java.io.Serializable;
+import java.util.Properties;
 
 import static junit.framework.TestCase.assertEquals;
 
 
 public class SlidingWindow {
 
-
-    public interface BaseConfigDeduper<In, Acc> extends Serializable {
-        Acc createAcc();
-        Acc addAccs(In in, Acc acc);
-    }
-
-    public static class ConfigDeduper implements BaseConfigDeduper<Tuple2<String, Integer>, Tuple2<String, Integer>> {
-
-        @Override
-        public Tuple2<String, Integer> createAcc() {
-            return new Tuple2<>("0", 0);
-        }
-
-        @Override
-        public Tuple2<String, Integer> addAccs(Tuple2<String, Integer> in, Tuple2<String, Integer> acc) {
-            acc.f1 += in.f1;
-            return acc;
-        }
-    }
-
-    public static class GenericAggregateFunctionDeduper<In, Acc> implements AggregateFunction<In, Acc, Acc> {
-
-        BaseConfigDeduper<In, Acc> cfg;
-        public GenericAggregateFunctionDeduper(BaseConfigDeduper<In, Acc> cfg) {
-            this.cfg = cfg;
-        }
-
-        @Override
-        public Acc createAccumulator() {
-            return cfg.createAcc();
-        }
-
-        @Override
-        public Acc add(In in, Acc acc) {
-            return cfg.addAccs(in, acc);
-        }
-
-        @Override
-        public Acc getResult(Acc acc) {
-            return acc;
-        }
-
-        @Override
-        public Acc merge(Acc acc, Acc acc1) {
-            return null;
-        }
-    }
-
-
     @Test
-    public void aggregateFunction_genericType() throws Exception {
+    public void watermarkAssign_test() throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
         env.setParallelism(1);
+        env.getConfig().setAutoWatermarkInterval(5000);
 
-        DataStream<Tuple2<String,Integer>> source = env.fromElements(Tuple2.of("0",1), Tuple2.of("0",2), Tuple2.of("0",3));
 
-        source
-                .keyBy(k -> k.f0)
-                .countWindow(5, 1)
-                .aggregate(new GenericAggregateFunctionDeduper<>(new ConfigDeduper()), Types.TUPLE(Types.STRING,Types.INT), Types.TUPLE(Types.STRING,Types.INT))
+        String topic = "input";
+        Properties consumerProps = new Properties();
+        consumerProps.setProperty("bootstrap.servers", "localhost:9092");
+        consumerProps.setProperty("group.id", "test-group-1");
+        String defInputPath = "D:/Documents/WorldCup_tools/ita_public_tools/output/wc_day46_1.txt";
+        AGMSConfig config = new AGMSConfig();
+
+        env
+                .addSource(new FlinkKafkaConsumer<>(topic, new SimpleStringSchema(), consumerProps))
                 .print();
+//                .flatMap(new WorldCupMapSource(config))
+//                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InputRecord>() {
+//                    @Override
+//                    public long extractAscendingTimestamp(InputRecord inputRecord) {
+//                        return inputRecord.getTimestamp();
+//                    }
+//                })
+//                .keyBy(InputRecord::getStreamID)
+//                .timeWindow(Time.seconds(1000), Time.seconds(5))
+//                .aggregate(
+//                        new IncAggregation<>(config),
+//                        new WindowFunction<>(config),
+//                        config.getAccType(),                        // AggregateFunction ACC type
+//                        config.getAccType(),                        // AggregateFunction V type
+//                        TypeInformation.of(InternalStream.class))   // WindowFunction R type
+//                .print();
 
         env.execute();
     }
 
-    //todo: make IncAggregator abstract so the used have to implement it
-
-    public interface MergedConfig<In, Acc, Out> extends BaseConfigAPI, AggregateFunction<In, Acc, Out> {}
-
-
-    public static class NewConfigAPI implements MergedConfig<Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>> {
-
-        @Override
-        public Tuple2<String, Integer> createAccumulator() {
-            return new Tuple2<>("0", 0);
-        }
-
-        @Override
-        public Tuple2<String, Integer> add(Tuple2<String, Integer> in, Tuple2<String, Integer> acc) {
-            acc.f1 += in.f1;
-            return acc;
-        }
-
-        @Override
-        public Tuple2<String, Integer> getResult(Tuple2<String, Integer> acc) {
-            return acc;
-        }
-
-        @Override
-        public Tuple2<String, Integer> merge(Tuple2<String, Integer> stringIntegerTuple2, Tuple2<String, Integer> acc1) {
-            return null;
-        }
-    }
-
-
-    public interface BaseConfigAPI extends Serializable {
-        //These will be implemented directly from AggregateFunction
-        //Acc createAcc();
-        //Acc addAccumulators(In in, Acc acc);
-
-        //other methods to be overridden
-    }
-//
-//    public static class ConfigAPI implements BaseConfigAPI<Tuple2<String, Integer>, Tuple2<String,Integer>, Tuple2<String, Integer>> {
-//        @Override
-//        public Tuple2<String, Integer> createAcc() {
-//            return new Tuple2<>("0", 0);
-//        }
-//
-//        @Override
-//        public Tuple2<String, Integer> addAccumulators(Tuple2<String, Integer> in, Tuple2<String, Integer> acc) {
-//            acc.f1 += in.f1;
-//            return acc;
-//        }
-//
-//
-//    }
-
-
-//    public static class SimpleGenericAggregateFunc implements AggregateFunction< Tuple2< String, Integer >, Tuple2< String, Integer >, Tuple2< String, Integer > > {
-//
-//        private BaseConfigAPI<Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>> cfg;
-//
-//        SimpleGenericAggregateFunc(BaseConfigAPI<Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>> cfg) {
-//            this.cfg = cfg;
-//        }
-//
-//        @Override
-//        public Tuple2<String, Integer> createAccumulator() {
-//            return cfg.createAcc();
-//        }
-//
-//        @Override
-//        public Tuple2<String, Integer> add(Tuple2<String, Integer> in, Tuple2<String, Integer> acc) {
-//            return cfg.addAccumulators(in, acc);
-//        }
-//
-//        @Override
-//        public Tuple2<String, Integer> getResult(Tuple2<String, Integer> acc) {
-//            return acc;
-//        }
-//
-//        @Override
-//        public Tuple2<String, Integer> merge(Tuple2<String, Integer> a, Tuple2<String, Integer> b) {
-//            return a;
-//        }
-//    }
-
-//    public static class GenericAggregateFunc<In, Acc, Out> implements AggregateFunction<In, Acc, Out> {
-//
-//        private BaseConfigAPI<In, Acc> cfg;
-//        GenericAggregateFunc(BaseConfigAPI<In, Acc, Out> cfg) {
-//            this.cfg = cfg;
-//        }
-//        @Override
-//        public Acc createAccumulator() {
-//            return cfg.createAcc();
-//        }
-//        @Override
-//        public Acc add(In in, Acc acc) {
-//            return cfg.addAccumulators(in, acc);
-//        }
-//        @Override
-//        public Out getResult(Acc acc) {
-//            return (Out)acc;
-//        }
-//        @Override
-//        public Acc merge(Acc acc, Acc acc1) {
-//            return null;
-//        }
-//    }
 
 
     @Test

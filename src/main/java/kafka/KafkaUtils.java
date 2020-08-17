@@ -1,6 +1,5 @@
 package kafka;
 
-import configurations.BaseConfig;
 import datatypes.InternalStream;
 import datatypes.internals.*;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
