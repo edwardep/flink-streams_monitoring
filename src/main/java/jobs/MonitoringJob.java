@@ -1,10 +1,6 @@
 package jobs;
 
 import configurations.AGMSConfig;
-import configurations.FgmConfig;
-import configurations.TestP1Config;
-import configurations.TestP4Config;
-import datatypes.Accumulator;
 import datatypes.InputRecord;
 import datatypes.InternalStream;
 import datatypes.internals.InitCoordinator;
@@ -14,15 +10,12 @@ import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.datastream.IterativeStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.util.OutputTag;
-import sources.SyntheticEventTimeSource;
-import sources.WorldCupMapSource;
 import sources.WorldCupSource;
 
 import java.util.Properties;
@@ -53,7 +46,7 @@ public class MonitoringJob {
 
 
         int defParallelism = 4; // Flink Parallelism
-        int defWindowSize = 3600; //  the size of the sliding window in seconds
+        int defWindowSize = 3000; //  the size of the sliding window in seconds
         int defSlideSize = 5; //  the sliding interval in milliseconds
 
         int defWarmup = 5;  //  warmup duration in seconds (processing time)
@@ -62,7 +55,7 @@ public class MonitoringJob {
         String defInputPath = "D:/Documents/WorldCup_tools/ita_public_tools/output/wc_day46_1.txt";
         //String defInputPath = "C:/Users/eduar/IdeaProjects/flink-fgm/logs/SyntheticDataSet2.txt";
         //String defOutputPath = "C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/outputSk.txt";
-        String defOutputPath = "C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/outputSk_1h_4.txt";
+        String defOutputPath = "C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/outputSk_15m_4.txt";
         String defJobName = "FGM-pipeline";
 
 
@@ -155,7 +148,12 @@ public class MonitoringJob {
                 .timeWindow(
                         Time.seconds(parameters.getInt("window", defWindowSize)),
                         Time.seconds(parameters.getInt("slide", defSlideSize)))
-                .aggregate(new IncAggregation<>(config), new WindowFunction<>(config))
+                .aggregate(
+                        new IncAggregation<>(config),
+                        new WindowFunction<>(config),
+                        config.getAccType(),                        // AggregateFunction ACC type
+                        config.getAccType(),                        // AggregateFunction V type
+                        TypeInformation.of(InternalStream.class))   // WindowFunction R type
 
                 /**
                  * The KeyedCoProcessFunction contains all of fgm's worker logic.
@@ -164,7 +162,7 @@ public class MonitoringJob {
                  * Output -> Connects to Coordinator's Input1
                  */
                 .connect(iteration)
-                .keyBy(Accumulator::getStreamID, InternalStream::getStreamID)
+                .keyBy(InternalStream::getStreamID, InternalStream::getStreamID)
                 .process(new WorkerProcessFunction<>(config));
 
         /**

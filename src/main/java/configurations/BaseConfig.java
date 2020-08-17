@@ -7,6 +7,8 @@ import java.io.Serializable;
 
 public interface BaseConfig<AccType, VectorType, RecordType> extends Serializable {
 
+    TypeInformation<AccType> getAccType();
+
     /**
      * This method is used internally in StateHandlers to define the type of state vectors .<br>
      * Usage: "return TypeInformation.of(YourVectorType.class)"

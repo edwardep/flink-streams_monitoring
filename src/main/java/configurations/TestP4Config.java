@@ -15,6 +15,11 @@ import static utils.DoubleOperators.*;
 public class TestP4Config implements BaseConfig<Vector, Vector, InputRecord> {
 
     @Override
+    public TypeInformation<Vector> getAccType() {
+        return null;
+    }
+
+    @Override
     public TypeInformation<Vector> getVectorType() {
         return TypeInformation.of(Vector.class);
     }

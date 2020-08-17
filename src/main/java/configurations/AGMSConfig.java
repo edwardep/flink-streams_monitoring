@@ -16,6 +16,9 @@ import static sketches.SketchMath.*;
 public class AGMSConfig implements BaseConfig<Vector, AGMSSketch, InputRecord> {
 
     @Override
+    public TypeInformation<Vector> getAccType() { return TypeInformation.of(Vector.class); }
+
+    @Override
     public TypeInformation<AGMSSketch> getVectorType() {
         return TypeInformation.of(AGMSSketch.class);
     }

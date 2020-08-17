@@ -1,7 +1,6 @@
 package operators;
 
 import configurations.BaseConfig;
-import datatypes.Accumulator;
 import datatypes.InternalStream;
 import datatypes.internals.*;
 import fgm.WorkerFunction;
@@ -10,7 +9,7 @@ import org.apache.flink.streaming.api.functions.co.KeyedCoProcessFunction;
 import org.apache.flink.util.Collector;
 import state.WorkerStateHandler;
 
-public class WorkerProcessFunction<AccType, VectorType>  extends KeyedCoProcessFunction<String, Accumulator<AccType>, InternalStream, InternalStream> {
+public class WorkerProcessFunction<AccType, VectorType>  extends KeyedCoProcessFunction<String, InternalStream, InternalStream, InternalStream> {
 
     private final BaseConfig<AccType, VectorType, ?> cfg;
 
@@ -22,12 +21,12 @@ public class WorkerProcessFunction<AccType, VectorType>  extends KeyedCoProcessF
     private WorkerStateHandler<VectorType> state;
 
     @Override
-    public void processElement1(Accumulator<AccType> input, Context context, Collector<InternalStream> collector) throws Exception {
+    public void processElement1(InternalStream input, Context context, Collector<InternalStream> collector) throws Exception {
 
         state.setLastTs(context.timestamp());
         assert state.getLastTs() > 0;
 
-        fgm.updateDrift(state, input.getVec());
+        fgm.updateDrift(state, ((WindowSlide<AccType>)input).getVector());
         fgm.subRoundProcess(state, collector);
     }
 

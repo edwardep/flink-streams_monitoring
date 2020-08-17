@@ -1,33 +1,30 @@
 package operators;
 
 import configurations.BaseConfig;
-import datatypes.Accumulator;
 import org.apache.flink.api.common.functions.AggregateFunction;
 
-public class IncAggregation<AccType, RecordType> implements AggregateFunction<RecordType, Accumulator<AccType>, Accumulator<AccType>> {
+public class IncAggregation<In, Acc> implements AggregateFunction<In, Acc, Acc> {
 
-    private BaseConfig<AccType, ?, RecordType> cfg;
-    public IncAggregation(BaseConfig<AccType, ?, RecordType> cfg) { this.cfg = cfg; }
-
+    private BaseConfig<Acc, ?, In> cfg;
+    public IncAggregation(BaseConfig<Acc, ?, In> cfg) { this.cfg = cfg; }
 
     @Override
-    public Accumulator<AccType> createAccumulator() {
-        return new Accumulator<>(cfg.newAccInstance());
+    public Acc createAccumulator() {
+        return cfg.newAccInstance();
     }
 
     @Override
-    public Accumulator<AccType> add(RecordType input, Accumulator<AccType> accumulator) {
-        accumulator.setVec(cfg.aggregateRecord(input, accumulator.getVec()));
-        return accumulator;
+    public Acc add(In in, Acc acc) {
+        return cfg.aggregateRecord(in, acc);
     }
 
     @Override
-    public Accumulator<AccType> getResult(Accumulator<AccType> accumulator) {
-        return accumulator;
+    public Acc getResult(Acc acc) {
+        return acc;
     }
 
     @Override
-    public Accumulator<AccType> merge(Accumulator<AccType> acc1, Accumulator<AccType> acc2) {
+    public Acc merge(Acc acc, Acc acc1) {
         return null;
     }
 }

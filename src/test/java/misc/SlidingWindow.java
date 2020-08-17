@@ -1,20 +1,16 @@
 package misc;
 
-import configurations.BaseConfig;
 import configurations.TestP1Config;
-import datatypes.Accumulator;
 import datatypes.InputRecord;
 import datatypes.InternalStream;
 import datatypes.Vector;
+import datatypes.internals.WindowSlide;
 import operators.IncAggregation;
 import operators.WindowFunction;
 import org.apache.flink.api.common.functions.AggregateFunction;
-import org.apache.flink.api.common.state.ValueState;
-import org.apache.flink.api.common.state.ValueStateDescriptor;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
@@ -30,9 +26,7 @@ import sources.SyntheticEventTimeSource;
 
 import test_utils.Testable;
 
-import java.io.IOException;
 import java.io.Serializable;
-import java.util.UUID;
 
 import static junit.framework.TestCase.assertEquals;
 
@@ -225,7 +219,7 @@ public class SlidingWindow {
         TestP1Config cfg = new TestP1Config();
 
         KeyedStream<InputRecord, String> keyedStream = env
-                .addSource(new SyntheticEventTimeSource())
+                .addSource(new SyntheticEventTimeSource(100000, 10, 100, 5, 10))
                 .map(x -> x)
                 .returns(TypeInformation.of(InputRecord.class))
                 .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InputRecord>() {
@@ -236,30 +230,40 @@ public class SlidingWindow {
                 })
                 .keyBy(k->"0");
 
-        DataStream<Accumulator<Vector>> windowedStream1 = keyedStream
+        DataStream<InternalStream> windowedStream1 = keyedStream
                 .timeWindow(Time.seconds(window), Time.seconds(slide))
-                .aggregate(new IncAggregation<>(cfg), new WindowFunctionSimple<>());
+                .aggregate(
+                        new IncAggregation<>(cfg),
+                        new WindowFunctionSimple<>(),
+                        TypeInformation.of(Vector.class),
+                        TypeInformation.of(Vector.class),
+                        TypeInformation.of(InternalStream.class));
 
-        DataStream<Accumulator<Vector>> windowedStream2 = keyedStream
+        DataStream<InternalStream> windowedStream2 = keyedStream
                 .timeWindow(Time.seconds(window), Time.seconds(slide))
-                .aggregate(new IncAggregation<>(cfg), new WindowFunction<>(cfg));
+                .aggregate(
+                        new IncAggregation<>(cfg),
+                        new WindowFunction<>(cfg),
+                        TypeInformation.of(Vector.class),
+                        TypeInformation.of(Vector.class),
+                        TypeInformation.of(InternalStream.class));
 
 
         windowedStream1
-                .process(new ProcessFunction<Accumulator<Vector>, String>() {
+                .process(new ProcessFunction<InternalStream, String>() {
                     @Override
-                    public void processElement(Accumulator<Vector> input, Context context, Collector<String> collector) throws Exception {
-                        collector.collect(cfg.queryFunction(input.getVec(), context.timestamp()));
+                    public void processElement(InternalStream input, Context context, Collector<String> collector) throws Exception {
+                        collector.collect(cfg.queryFunction(((WindowSlide<Vector>)input).getVector(), context.timestamp()));
                     }
                 }).addSink(new Testable.WindowValidationSink1());
 
         windowedStream2
-                .process(new ProcessFunction<Accumulator<Vector>, String>() {
+                .process(new ProcessFunction<InternalStream, String>() {
 
                     Vector drift = new Vector();
                     @Override
-                    public void processElement(Accumulator<Vector> input, Context context, Collector<String> collector) throws Exception {
-                        Vector current = new Vector(input.getVec().map());
+                    public void processElement(InternalStream input, Context context, Collector<String> collector) throws Exception {
+                        Vector current = new Vector(((WindowSlide<Vector>)input).getVector().map());
                         drift = cfg.addVectors(current, drift);
                         collector.collect(cfg.queryFunction(drift,context.timestamp()));
                     }
@@ -274,11 +278,11 @@ public class SlidingWindow {
             assertEquals("at"+i+" out of "+size1, Testable.WindowValidationSink1.result1.get(i),Testable.WindowValidationSink2.result2.get(i));
     }
 
-    public static class WindowFunctionSimple<AccType> extends ProcessWindowFunction<Accumulator<AccType>, Accumulator<AccType>, String, TimeWindow> {
+    public static class WindowFunctionSimple<AccType> extends ProcessWindowFunction<AccType, InternalStream, String, TimeWindow> {
         @Override
-        public void process(String key, Context ctx, Iterable<Accumulator<AccType>> iterable, Collector<Accumulator<AccType>> out) {
+        public void process(String key, Context ctx, Iterable<AccType> iterable, Collector<InternalStream> out) {
             if(iterable.iterator().hasNext()){
-                out.collect(new Accumulator<>(key, iterable.iterator().next().getVec()));
+                out.collect(new WindowSlide<>(key, iterable.iterator().next()));
             }
         }
     }

@@ -1,41 +1,35 @@
 package operators;
 
 import configurations.BaseConfig;
-import datatypes.Accumulator;
 import datatypes.InternalStream;
+import datatypes.internals.WindowSlide;
 import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.common.state.ValueStateDescriptor;
-import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 
-import java.io.IOException;
-import java.util.UUID;
+public class WindowFunction<Acc> extends ProcessWindowFunction<Acc, InternalStream, String, TimeWindow> {
 
+    private BaseConfig<Acc,?,?> cfg;
 
-public class WindowFunction<AccType> extends ProcessWindowFunction<Accumulator<AccType>, Accumulator<AccType>, String, TimeWindow> {
-    private String UID = UUID.randomUUID().toString();
-    private BaseConfig<AccType,?,?> cfg;
+    private transient ValueState<Acc> state;
 
-    private transient ValueState<Accumulator> state;
-
-    public WindowFunction(BaseConfig<AccType,?,?> cfg) {
+    public WindowFunction(BaseConfig<Acc,?,?> cfg) {
         this.cfg = cfg;
     }
-
     @Override
-    public void process(String key, Context ctx, Iterable<Accumulator<AccType>> iterable, Collector<Accumulator<AccType>> out) throws IOException {
+    public void process(String key, Context context, Iterable<Acc> iterable, Collector<InternalStream> out) throws Exception {
         if(iterable.iterator().hasNext()){
-            Accumulator accumulator = iterable.iterator().next();
-            AccType drift;
+            Acc accumulator = iterable.iterator().next();
+            Acc window_drift;
             if(state.value() != null)
-                drift = cfg.subtractAccumulators((AccType) accumulator.getVec(), (AccType) state.value().getVec());
+                window_drift = cfg.subtractAccumulators(accumulator, state.value());
             else
-                drift = (AccType) accumulator.getVec();
+                window_drift = accumulator;
 
-            out.collect(new Accumulator<>(key, drift));
+            out.collect(new WindowSlide<>(key, window_drift));
             state.update(accumulator);
         }
     }
@@ -43,6 +37,6 @@ public class WindowFunction<AccType> extends ProcessWindowFunction<Accumulator<A
     @Override
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
-        state = getRuntimeContext().getState(new ValueStateDescriptor<>(UID+"state", TypeInformation.of(Accumulator.class)));
+        state = getRuntimeContext().getState(new ValueStateDescriptor<>("window", cfg.getAccType()));
     }
 }

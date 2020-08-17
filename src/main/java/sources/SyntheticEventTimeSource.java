@@ -24,7 +24,7 @@ public class SyntheticEventTimeSource implements SourceFunction<InputRecord> {
 
     public SyntheticEventTimeSource(int records,int recordsPerSec, int keyRandomness, int gap, int groupSize) {
         this.records = records;
-        this.recordsPerSec = 1000/recordsPerSec;
+        this.recordsPerSec = recordsPerSec;
         this.keyRandomness = keyRandomness;
         this.gap = gap;
         this.groupSize = groupSize;
@@ -36,11 +36,12 @@ public class SyntheticEventTimeSource implements SourceFunction<InputRecord> {
 
     @Override
     public void run(SourceContext<InputRecord> sourceContext) throws Exception {
+        long startTime = System.currentTimeMillis();
         while(isRunning) {
             // Stop after..
             if(monotonicity > records) cancel();
 
-            long timestampMillis = System.currentTimeMillis()+(recordsPerSec*monotonicity);
+            long timestampMillis = startTime + ((1000 / recordsPerSec) * monotonicity);
             InputRecord event = new InputRecord(
                     String.valueOf(rand2.nextInt(groupSize)), //streamID
                     timestampMillis,

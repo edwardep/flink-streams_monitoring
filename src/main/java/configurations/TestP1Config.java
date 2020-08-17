@@ -17,6 +17,11 @@ import static utils.DoubleOperators.normalize;
 
 public class TestP1Config implements BaseConfig<Vector, Vector, InputRecord> {
     @Override
+    public TypeInformation<Vector> getAccType() {
+        return TypeInformation.of(Vector.class);
+    }
+
+    @Override
     public TypeInformation<Vector> getVectorType() {
         return TypeInformation.of(Vector.class);
     }
