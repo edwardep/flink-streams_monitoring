@@ -2,9 +2,11 @@ package configurations;
 
 import datatypes.InputRecord;
 import datatypes.Vector;
+import datatypes.internals.GlobalEstimate;
 import fgm.SafeZone;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.type.TypeReference;
 import sketches.AGMSSketch;
 import sketches.SelfJoinAGMS;
 
@@ -17,6 +19,11 @@ public class AGMSConfig implements BaseConfig<Vector, AGMSSketch, InputRecord> {
 
     @Override
     public TypeInformation<Vector> getAccType() { return TypeInformation.of(Vector.class); }
+
+    @Override
+    public TypeReference<GlobalEstimate<AGMSSketch>> getTypeReference() {
+        return AGMSSketch.getTypeReference();
+    }
 
     @Override
     public TypeInformation<AGMSSketch> getVectorType() {

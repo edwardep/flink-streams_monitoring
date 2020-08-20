@@ -1,13 +1,20 @@
 package configurations;
 
+import datatypes.Vector;
+import datatypes.internals.GlobalEstimate;
 import fgm.SafeZone;
+
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.type.TypeReference;
+
 import java.io.Serializable;
 
 
 public interface BaseConfig<AccType, VectorType, RecordType> extends Serializable {
 
     TypeInformation<AccType> getAccType();
+
+    TypeReference<GlobalEstimate<VectorType>> getTypeReference();
 
     /**
      * This method is used internally in StateHandlers to define the type of state vectors .<br>

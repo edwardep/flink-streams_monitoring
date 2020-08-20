@@ -1,8 +1,12 @@
 package kafka;
 
+import configurations.BaseConfig;
 import datatypes.InternalStream;
 import datatypes.internals.*;
+import org.apache.commons.rng.simple.RandomSource;
+import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,15 +16,26 @@ import org.apache.flink.streaming.connectors.kafka.KafkaDeserializationSchema;
 import org.apache.flink.streaming.connectors.kafka.KafkaSerializationSchema;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.junit.runners.Parameterized;
 import sketches.AGMSSketch;
 
 import javax.annotation.Nullable;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.Random;
 
 public class KafkaUtils {
 
-    public static FlinkKafkaProducer<InternalStream> createProducerInternal(String topic, Properties properties) {
+    public static FlinkKafkaConsumer<String> createConsumerInput(ParameterTool parameters) {
+        String topic = parameters.get("input-topic", "input");
+        return new FlinkKafkaConsumer<>(
+                topic,
+                new SimpleStringSchema(),
+                createProperties(parameters, "input-group"));
+    }
+
+    public static FlinkKafkaProducer<InternalStream> createProducerInternal(ParameterTool parameters) {
+        String topic = parameters.get("feedback-topic", "feedback");
         return new FlinkKafkaProducer<>(
                 topic,
                 new KafkaSerializationSchema<InternalStream>() {
@@ -42,11 +57,13 @@ public class KafkaUtils {
                         return new ProducerRecord<>(topic, Integer.parseInt(record.getStreamID()), type, value);
                     }
                 },
-                properties,
+                createProperties(parameters),
                 FlinkKafkaProducer.Semantic.NONE);
     }
 
-    public static FlinkKafkaConsumer<InternalStream> createConsumerInternal(String topic, Properties properties) {
+    public static FlinkKafkaConsumer<InternalStream> createConsumerInternal(ParameterTool parameters, BaseConfig<?,?,?> cfg) {
+        Random rand = new Random();
+        String topic = parameters.get("feedback-topic", "feedback");
         return new FlinkKafkaConsumer<>(
                 topic,
                 new KafkaDeserializationSchema<InternalStream>() {
@@ -72,7 +89,7 @@ public class KafkaUtils {
                                     retVal = mapper.readValue(record.value(), Quantum.class);
                                     break;
                                 case "GlobalEstimate":
-                                    retVal = mapper.readValue(record.value(), new TypeReference<GlobalEstimate<AGMSSketch>>() {});
+                                    retVal = mapper.readValue(record.value(), cfg.getTypeReference());
                                     break;
                                 case "Lambda":
                                     retVal = mapper.readValue(record.value(), Lambda.class);
@@ -98,13 +115,21 @@ public class KafkaUtils {
                         return TypeInformation.of(InternalStream.class);
                     }
                 },
-                properties);
+                createProperties(parameters, "iter-group-"+rand.nextLong()));
     }
 
-    private Properties createProperties(String servers, String groupId) {
+
+
+    private static Properties createProperties(ParameterTool parameters, String groupId) {
         Properties properties = new Properties();
-        properties.setProperty("bootstrap.servers", servers);
+        properties.setProperty("bootstrap.servers", parameters.get("kafka-servers", "localhost:9092"));
         properties.setProperty("group.id", groupId);
+        return properties;
+    }
+
+    private static Properties createProperties(ParameterTool parameters) {
+        Properties properties = new Properties();
+        properties.setProperty("bootstrap.servers", parameters.get("kafka-servers", "localhost:9092"));
         return properties;
     }
 }

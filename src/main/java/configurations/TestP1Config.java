@@ -3,9 +3,11 @@ package configurations;
 import configurations.BaseConfig;
 import datatypes.InputRecord;
 import datatypes.Vector;
+import datatypes.internals.GlobalEstimate;
 import fgm.SafeZone;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.type.TypeReference;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -19,6 +21,11 @@ public class TestP1Config implements BaseConfig<Vector, Vector, InputRecord> {
     @Override
     public TypeInformation<Vector> getAccType() {
         return TypeInformation.of(Vector.class);
+    }
+
+    @Override
+    public TypeReference<GlobalEstimate<Vector>> getTypeReference() {
+        return null;
     }
 
     @Override

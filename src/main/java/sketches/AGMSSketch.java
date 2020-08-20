@@ -1,5 +1,7 @@
 package sketches;
 
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.type.TypeReference;
+import datatypes.internals.GlobalEstimate;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.Arrays;
@@ -107,5 +109,9 @@ public class AGMSSketch {
 
     public void setSketchVector(double[][] sketchVector) {
         this.sketchVector = sketchVector;
+    }
+
+    public static TypeReference<GlobalEstimate<AGMSSketch>> getTypeReference() {
+        return new TypeReference<GlobalEstimate<AGMSSketch>>() {};
     }
 }
