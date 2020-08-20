@@ -1,28 +1,31 @@
 package configurations;
 
 import datatypes.InputRecord;
-import datatypes.Vector;
 import datatypes.internals.GlobalEstimate;
 import fgm.SafeZone;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.type.TypeReference;
 import sketches.AGMSSketch;
 import sketches.SelfJoinAGMS;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import static sketches.SketchMath.*;
 
 
-public class AGMSConfig implements BaseConfig<Vector, AGMSSketch, InputRecord> {
+public class AGMSConfig implements BaseConfig<Map<Tuple2<Integer, Integer>, Double>, AGMSSketch, InputRecord> {
 
     @Override
-    public TypeInformation<Vector> getAccType() { return TypeInformation.of(Vector.class); }
+    public TypeInformation<Map<Tuple2<Integer, Integer>, Double>> getAccType() {
+        return Types.MAP(Types.TUPLE(Types.INT, Types.INT), Types.DOUBLE);
+    }
 
     @Override
     public TypeReference<GlobalEstimate<AGMSSketch>> getTypeReference() {
-        return AGMSSketch.getTypeReference();
+        return new TypeReference<GlobalEstimate<AGMSSketch>>() {};
     }
 
     @Override
@@ -36,32 +39,30 @@ public class AGMSConfig implements BaseConfig<Vector, AGMSSketch, InputRecord> {
     }
 
     @Override
-    public AGMSSketch newInstance() {
+    public AGMSSketch newVectorInstance() {
         return new AGMSSketch(7,3000);
     }
 
     @Override
-    public Vector newAccInstance() {
-        return new Vector();
-    }
+    public Map<Tuple2<Integer, Integer>, Double> newAccInstance() { return new HashMap<>(); }
 
     @Override
-    public Vector aggregateRecord(InputRecord record, Vector vector) {
-        vector.map().put(record.getKey(), vector.getValue(record.getKey()) + record.getVal());
+    public Map<Tuple2<Integer, Integer>, Double> aggregateRecord(InputRecord record, Map<Tuple2<Integer, Integer>, Double> vector) {
+        vector.put(record.getKey(), vector.getOrDefault(record.getKey(), 0d) + record.getVal());
         return vector;
     }
 
     @Override
-    public Vector subtractAccumulators(Vector acc1, Vector acc2) {
-        Vector res = new Vector(acc1.map());
-        for(Tuple2<Integer,Integer> key : acc2.map().keySet())
-            res.map().put(key, res.getValue(key) - acc2.getValue(key));
+    public Map<Tuple2<Integer, Integer>, Double> subtractAccumulators(Map<Tuple2<Integer, Integer>, Double> acc1, Map<Tuple2<Integer, Integer>, Double> acc2) {
+        Map<Tuple2<Integer, Integer>, Double> res = new HashMap<>(acc1);
+        for(Tuple2<Integer,Integer> key : acc2.keySet())
+            res.put(key, res.getOrDefault(key, 0d) - acc2.get(key));
         return res;
     }
 
     @Override
-    public AGMSSketch updateVector(Vector accumulator, AGMSSketch vector) {
-        for (Map.Entry<Tuple2<Integer,Integer>, Double> entry : accumulator.map().entrySet()) {
+    public AGMSSketch updateVector(Map<Tuple2<Integer, Integer>, Double> accumulator, AGMSSketch vector) {
+        for (Map.Entry<Tuple2<Integer,Integer>, Double> entry : accumulator.entrySet()) {
             long key = entry.getKey().hashCode(); // you could hash the 2 fields separately and concat them into a long
             vector.update(key, entry.getValue());
         }

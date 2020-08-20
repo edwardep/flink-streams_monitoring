@@ -20,9 +20,12 @@ public class CustomOperator {
 
         DataStream<String> source = env.fromElements("11");
 
-        monitoring
+
+        DataStream<Integer> process = monitoring
                 .addSource(source)
-                .execute()
+                .execute();
+
+        process
                 .print();
 
 

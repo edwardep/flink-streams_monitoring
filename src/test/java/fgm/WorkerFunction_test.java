@@ -250,7 +250,7 @@ public class WorkerFunction_test {
                 fgm.sendDrift(state, collector);
 
                 // validate: vector should be empty after the previous function
-                assertEquals(state.getDrift(), conf.newInstance());
+                assertEquals(state.getDrift(), conf.newVectorInstance());
             }
 
             @Override

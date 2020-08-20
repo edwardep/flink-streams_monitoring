@@ -48,7 +48,7 @@ public class WorkerFunction<AccType, VectorType> implements Serializable {
 
         state.setLambda(1.0);
 
-        double fi0 = cfg.safeFunction(cfg.newInstance(), state.getEstimate(), sz);
+        double fi0 = cfg.safeFunction(cfg.newVectorInstance(), state.getEstimate(), sz);
 
         state.setLastZeta(fi0);
 
@@ -134,7 +134,7 @@ public class WorkerFunction<AccType, VectorType> implements Serializable {
             return;
 
         /*  If drift hasn't been updated since subRoundPhase stopped, do nothing */
-        if (state.getDrift().equals(cfg.newInstance()))
+        if (state.getDrift().equals(cfg.newVectorInstance()))
             return;
 
         /*  new SubRound begins, initialize Z and Ci */
@@ -170,7 +170,7 @@ public class WorkerFunction<AccType, VectorType> implements Serializable {
         state.setLambda(payload);
 
         // Compute the quantum value
-        double fi0 = state.getLambda() * cfg.safeFunction(cfg.newInstance(), state.getEstimate(), state.getSafeZone());
+        double fi0 = state.getLambda() * cfg.safeFunction(cfg.newVectorInstance(), state.getEstimate(), state.getSafeZone());
         state.setLastZeta(fi0);
         state.setQuantum(fi0/2);
 

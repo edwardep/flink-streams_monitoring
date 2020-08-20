@@ -125,7 +125,7 @@ public class CoordinatorFunction_test {
 
                 // validate : expecting global state to be equal to each drift since it is the result of Averaging
                 assertEquals(new Vector(generateSequence(10)), state.getEstimate());
-                assertEquals(state.getAggregateState(), conf.newInstance());
+                assertEquals(state.getAggregateState(), conf.newVectorInstance());
                 assertFalse(state.getSync());
             }
 

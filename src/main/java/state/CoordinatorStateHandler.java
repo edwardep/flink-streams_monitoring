@@ -48,10 +48,10 @@ public class CoordinatorStateHandler<VectorType>{
 
     /* Getters */
     public VectorType getEstimate() throws IOException {
-        return estimate.value() != null ? estimate.value() : cfg.newInstance();
+        return estimate.value() != null ? estimate.value() : cfg.newVectorInstance();
     }
     public VectorType getAggregateState() throws IOException {
-        return aggregateState.value() != null ? aggregateState.value() : cfg.newInstance();
+        return aggregateState.value() != null ? aggregateState.value() : cfg.newVectorInstance();
     }
     public SafeZone getSafeZone() throws IOException {
         return safeZone.value();

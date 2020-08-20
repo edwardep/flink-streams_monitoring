@@ -12,9 +12,13 @@ import java.io.Serializable;
 
 public interface BaseConfig<AccType, VectorType, RecordType> extends Serializable {
 
+    /**
+     * Used internally by the WindowFunction to correctly initialize the state of the window.
+     * Usage: "return TypeInformation.of(YourAccumulatorType.class)"
+     * @return A type hint for value state creation
+     */
     TypeInformation<AccType> getAccType();
 
-    TypeReference<GlobalEstimate<VectorType>> getTypeReference();
 
     /**
      * This method is used internally in StateHandlers to define the type of state vectors .<br>
@@ -25,9 +29,14 @@ public interface BaseConfig<AccType, VectorType, RecordType> extends Serializabl
     TypeInformation<VectorType> getVectorType();
 
     /**
+     * Used internally by the kafka consumer when de-serializing the feedback messages.
+     *
+     * @return A jackson2 type reference for Object deserialization
+     */
+    TypeReference<GlobalEstimate<VectorType>> getTypeReference();
+    /**
      * Used internally in synchronization processes. This translates to 'k' in the fgm algorithm and it indicates<br>
      * the number of workers (sites) <br>
-     * Usage: "return this.keyGroup.size();"
      *
      * @return the number of sites
      */
@@ -41,10 +50,10 @@ public interface BaseConfig<AccType, VectorType, RecordType> extends Serializabl
     default Double getMQF() { return 0.01; }
 
     /**
-     * newInstance() is called when initializing ValueState internally and whenever there is need for an empty Vector
+     * newVectorInstance() is called when initializing ValueState internally and whenever there is need for an empty Vector
      * @return a new Instance of Vector
      */
-    VectorType newInstance();
+    VectorType newVectorInstance();
 
     /**
      * This instance is used in the IncrementalWindowAggregation. It can be the same type as the Vector.

@@ -61,10 +61,10 @@ public class WorkerStateHandler<VectorType> {
 
     /* Getters */
     public VectorType getDrift() throws IOException {
-        return driftVector.value() != null ? driftVector.value() : cfg.newInstance();
+        return driftVector.value() != null ? driftVector.value() : cfg.newVectorInstance();
     }
     public VectorType getEstimate() throws IOException {
-        return estimate.value() != null ? estimate.value() : cfg.newInstance();
+        return estimate.value() != null ? estimate.value() : cfg.newVectorInstance();
     }
     public SafeZone getSafeZone() throws IOException {
         return safeZone.value();

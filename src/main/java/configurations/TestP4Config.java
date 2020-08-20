@@ -37,7 +37,7 @@ public class TestP4Config implements BaseConfig<Vector, Vector, InputRecord> {
     }
 
     @Override
-    public Vector newInstance() {
+    public Vector newVectorInstance() {
         return new Vector();
     }
 

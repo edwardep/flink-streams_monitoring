@@ -139,7 +139,7 @@ public class CoordinatorFunction<VectorType> {
             state.setNodeCount(0);
 
             double safeThreshold = cfg.getMQF()*cfg.workers()*cfg.safeFunction(
-                    cfg.newInstance(),
+                    cfg.newVectorInstance(),
                     state.getEstimate(),
                     state.getSafeZone());
 
