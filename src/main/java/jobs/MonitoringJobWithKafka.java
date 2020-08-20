@@ -8,6 +8,7 @@ import operators.CoordinatorProcessFunction;
 import operators.IncAggregation;
 import operators.WindowFunction;
 import operators.WorkerProcessFunction;
+import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.core.fs.FileSystem;
@@ -21,6 +22,7 @@ import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
 import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.streaming.api.windowing.time.Time;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
 import sources.WorldCupMapSource;
@@ -73,7 +75,6 @@ public class MonitoringJobWithKafka {
         env.getConfig().setGlobalJobParameters(parameters);
         env.setParallelism(parameters.getInt("p", defParallelism));
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
-        env.getConfig().setAutoWatermarkInterval(5);
 
         /**
          *  Kafka Configuration
@@ -83,6 +84,10 @@ public class MonitoringJobWithKafka {
         Properties consumerProps = new Properties();
         consumerProps.setProperty("bootstrap.servers", "localhost:9092");
         consumerProps.setProperty("group.id", "group"+rand.nextLong());
+
+        Properties inputProps = new Properties();
+        inputProps.setProperty("bootstrap.servers", "localhost:9092");
+        inputProps.setProperty("group.id", "input-group");
 
         Properties producerProps = new Properties();
         producerProps.setProperty("bootstrap.servers", "localhost:9092");
@@ -115,15 +120,19 @@ public class MonitoringJobWithKafka {
         /**
          *  Reading line by line from file and streaming POJOs
          */
+//        DataStream<InputRecord> streamFromFile = env
+//                .readTextFile(parameters.get("input", defInputPath))
+//                .flatMap(new WorldCupMapSource(config))
+//                .process(new ProcessFunction<InputRecord, InputRecord>() {
+//                    @Override
+//                    public void processElement(InputRecord inputRecord, Context context, Collector<InputRecord> collector) throws Exception {
+//                        collector.collect(inputRecord);
+//                    }
+//                });
+
         DataStream<InputRecord> streamFromFile = env
-                .readTextFile(parameters.get("input", defInputPath))
-                .flatMap(new WorldCupMapSource(config))
-                .process(new ProcessFunction<InputRecord, InputRecord>() {
-                    @Override
-                    public void processElement(InputRecord inputRecord, Context context, Collector<InputRecord> collector) throws Exception {
-                        collector.collect(inputRecord);
-                    }
-                });
+                .addSource(new FlinkKafkaConsumer<>("input", new SimpleStringSchema(), inputProps).setStartFromEarliest())
+                .flatMap(new WorldCupMapSource(config));
 
 //        DataStream<InputRecord> streamFromFile = env
 //                .addSource(new WorldCupSource(defInputPath, config))

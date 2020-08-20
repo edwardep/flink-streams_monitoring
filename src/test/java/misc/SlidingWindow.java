@@ -44,8 +44,47 @@ public class SlidingWindow {
     public void watermarkAssign_test() throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
+        env.setParallelism(10);
+
+        String defInputPath = "D:/Documents/WorldCup_tools/ita_public_tools/output/test_set.txt";
+        AGMSConfig config = new AGMSConfig();
+
+        env
+                .readTextFile(defInputPath)
+                .flatMap(new WorldCupMapSource(config))
+                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InputRecord>() {
+                    @Override
+                    public long extractAscendingTimestamp(InputRecord inputRecord) {
+                        return inputRecord.getTimestamp();
+                    }
+                })
+                .keyBy(InputRecord::getStreamID)
+                .timeWindow(Time.seconds(1000), Time.seconds(5))
+                .process(new ProcessWindowFunction<InputRecord, String, String, TimeWindow>() {
+                    @Override
+                    public void process(String s, Context context, Iterable<InputRecord> iterable, Collector<String> collector) throws Exception {
+                            collector.collect(iterable.toString());
+                    }
+                })
+                .print();
+//                .aggregate(
+//                        new IncAggregation<>(config),
+//                        new WindowFunction<>(config),
+//                        config.getAccType(),                        // AggregateFunction ACC type
+//                        config.getAccType(),                        // AggregateFunction V type
+//                        TypeInformation.of(InternalStream.class))   // WindowFunction R type
+//                .print();
+
+        env.execute();
+    }
+
+
+
+    @Test
+    public void watermarkAssign_kafka_test() throws Exception {
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
         env.setParallelism(1);
-        env.getConfig().setAutoWatermarkInterval(5000);
 
 
         String topic = "input";
@@ -56,17 +95,23 @@ public class SlidingWindow {
         AGMSConfig config = new AGMSConfig();
 
         env
-                .addSource(new FlinkKafkaConsumer<>(topic, new SimpleStringSchema(), consumerProps))
+                .addSource(new FlinkKafkaConsumer<>(topic, new SimpleStringSchema(), consumerProps).setStartFromEarliest())
+                .flatMap(new WorldCupMapSource(config))
+                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InputRecord>() {
+                    @Override
+                    public long extractAscendingTimestamp(InputRecord inputRecord) {
+                        return inputRecord.getTimestamp();
+                    }
+                })
+                .keyBy(InputRecord::getStreamID)
+                .timeWindow(Time.seconds(1000), Time.seconds(5))
+                .process(new ProcessWindowFunction<InputRecord, String, String, TimeWindow>() {
+                    @Override
+                    public void process(String s, Context context, Iterable<InputRecord> iterable, Collector<String> collector) throws Exception {
+                        collector.collect(iterable.toString());
+                    }
+                })
                 .print();
-//                .flatMap(new WorldCupMapSource(config))
-//                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InputRecord>() {
-//                    @Override
-//                    public long extractAscendingTimestamp(InputRecord inputRecord) {
-//                        return inputRecord.getTimestamp();
-//                    }
-//                })
-//                .keyBy(InputRecord::getStreamID)
-//                .timeWindow(Time.seconds(1000), Time.seconds(5))
 //                .aggregate(
 //                        new IncAggregation<>(config),
 //                        new WindowFunction<>(config),
