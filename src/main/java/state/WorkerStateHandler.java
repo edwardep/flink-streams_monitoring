@@ -1,16 +1,19 @@
 package state;
 
 import configurations.BaseConfig;
-import datatypes.Vector;
 import fgm.SafeZone;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.state.ValueState;
+import org.apache.flink.api.common.state.ValueStateDescriptor;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeinfo.Types;
 
 import java.io.IOException;
+import java.util.UUID;
 
-public class WorkerStateHandler<VectorType> extends StateHandler<VectorType>{
+public class WorkerStateHandler<VectorType> {
+    private final String UID = UUID.randomUUID().toString();
+
     private transient ValueState<VectorType> driftVector;
     private transient ValueState<VectorType> estimate;
     private transient ValueState<SafeZone> safeZone;
@@ -28,18 +31,15 @@ public class WorkerStateHandler<VectorType> extends StateHandler<VectorType>{
     private transient ValueState<Long> lastTs;
 
     private BaseConfig<?, VectorType, ?> cfg;
+    private RuntimeContext runtimeContext;
 
     public WorkerStateHandler(RuntimeContext runtimeContext, BaseConfig<?, VectorType, ?> cfg) {
-        super(runtimeContext);
         this.cfg = cfg;
-        init(cfg);
-    }
-    @Override
-    public void init(BaseConfig<?, VectorType, ?> conf) {
+        this.runtimeContext = runtimeContext;
 
-        driftVector = createState("driftVector", conf.getVectorType());
-        estimate = createState("estimate", conf.getVectorType());
-        safeZone = createState("safeZone", TypeInformation.of(SafeZone.class));
+        driftVector = createState("driftVector", cfg.getVectorType());
+        estimate = createState("estimate", cfg.getVectorType());
+        safeZone = createState("safeZone", Types.GENERIC(SafeZone.class));
 
         subRoundInit = createState("subRoundInit", Types.BOOLEAN);
         subRoundPhase = createState("subRoundPhase", Types.BOOLEAN);
@@ -53,8 +53,13 @@ public class WorkerStateHandler<VectorType> extends StateHandler<VectorType>{
         lambda = createState("lambda", Types.DOUBLE);
     }
 
-    /* Getters */
+    private <V> ValueState<V> createState(String name, TypeInformation<V> type) {
+        return runtimeContext
+                .getState(new ValueStateDescriptor<>(UID+name, type));
+    }
 
+
+    /* Getters */
     public VectorType getDrift() throws IOException {
         return driftVector.value() != null ? driftVector.value() : cfg.newInstance();
     }

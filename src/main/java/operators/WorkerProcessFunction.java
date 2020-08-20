@@ -34,19 +34,24 @@ public class WorkerProcessFunction<AccType, VectorType>  extends KeyedCoProcessF
     public void processElement2(InternalStream input, Context context, Collector<InternalStream> collector) throws Exception {
         //System.out.println("id:"+context.getCurrentKey()+", type:"+input.getClass().getName());
 
-        if (GlobalEstimate.class.equals(input.getClass())) {
-            fgm.newRound(state, ((GlobalEstimate<VectorType>) input).getVector());
-            fgm.subRoundProcess(state, collector);
-        } else if (Quantum.class.equals(input.getClass())) {
-            fgm.newSubRound(state, ((Quantum) input).getPayload());
-            fgm.subRoundProcess(state, collector);
-        } else if (RequestDrift.class.equals(input.getClass())) {
-            fgm.sendDrift(state, collector);
-        } else if (RequestZeta.class.equals(input.getClass())) {
-            fgm.sendZeta(state, collector);
-        } else if (Lambda.class.equals(input.getClass())) {
-            fgm.newRebalancedRound(state, ((Lambda) input).getLambda());
-            fgm.subRoundProcess(state, collector);
+        switch (input.type){
+            case "GlobalEstimate":
+                fgm.newRound(state, ((GlobalEstimate<VectorType>) input).getVector());
+                fgm.subRoundProcess(state, collector);
+                break;
+            case "Quantum":
+                fgm.newSubRound(state, ((Quantum) input).getPayload());
+                fgm.subRoundProcess(state, collector);
+                break;
+            case "RequestDrift":
+                fgm.sendDrift(state, collector);
+                break;
+            case "RequestZeta":
+                fgm.sendZeta(state, collector);
+                break;
+            case "Lambda":
+                fgm.newRebalancedRound(state, ((Lambda) input).getLambda());
+                fgm.subRoundProcess(state, collector);
         }
     }
 

@@ -100,4 +100,11 @@ public class KafkaUtils {
                 },
                 properties);
     }
+
+    private Properties createProperties(String servers, String groupId) {
+        Properties properties = new Properties();
+        properties.setProperty("bootstrap.servers", servers);
+        properties.setProperty("group.id", groupId);
+        return properties;
+    }
 }

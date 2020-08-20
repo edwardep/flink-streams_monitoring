@@ -1,17 +1,18 @@
 package state;
 
 import configurations.BaseConfig;
-import datatypes.Vector;
 import fgm.SafeZone;
 import org.apache.flink.api.common.functions.RuntimeContext;
-import org.apache.flink.api.common.state.MapState;
 import org.apache.flink.api.common.state.ValueState;
+import org.apache.flink.api.common.state.ValueStateDescriptor;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeinfo.Types;
 
 import java.io.IOException;
+import java.util.UUID;
 
-public class CoordinatorStateHandler<VectorType> extends StateHandler<VectorType>{
+public class CoordinatorStateHandler<VectorType>{
+    private final String UID = UUID.randomUUID().toString();
 
     private transient ValueState<VectorType> aggregateState;
     private transient ValueState<VectorType> estimate;
@@ -22,25 +23,27 @@ public class CoordinatorStateHandler<VectorType> extends StateHandler<VectorType
     private transient ValueState<Double> psiBeta;
     private transient ValueState<Integer> globalCounter;
 
+    private RuntimeContext runtimeContext;
     private BaseConfig<?, VectorType, ?> cfg;
 
     public CoordinatorStateHandler(RuntimeContext runtimeContext, BaseConfig<?, VectorType, ?> cfg) {
-        super(runtimeContext);
         this.cfg = cfg;
-        init(cfg);
-    }
+        this.runtimeContext = runtimeContext;
 
-    @Override
-    public void init(BaseConfig<?, VectorType, ?> conf) {
         psi = createState("psiValue", Types.DOUBLE);
         psiBeta = createState("psiBeta", Types.DOUBLE);
         sync = createState("waitDrifts", Types.BOOLEAN);
         nodeCount = createState("nodeCount",Types.INT);
         globalCounter = createState("globalCounter", Types.INT);
 
-        aggregateState = createState("aggregateState", conf.getVectorType());
-        estimate = createState("estimate",conf.getVectorType());
-        safeZone = createState("safeZone", TypeInformation.of(SafeZone.class));
+        aggregateState = createState("aggregateState", cfg.getVectorType());
+        estimate = createState("estimate", cfg.getVectorType());
+        safeZone = createState("safeZone", Types.GENERIC(SafeZone.class));
+    }
+
+    private <V> ValueState<V> createState(String name, TypeInformation<V> type) {
+        return runtimeContext
+                .getState(new ValueStateDescriptor<>(UID+name, type));
     }
 
     /* Getters */
