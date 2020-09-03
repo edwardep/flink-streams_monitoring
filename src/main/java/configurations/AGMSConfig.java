@@ -20,6 +20,16 @@ import static sketches.SketchMath.*;
 
 public class AGMSConfig implements BaseConfig<Map<Tuple2<Integer, Integer>, Double>, AGMSSketch, InputRecord> {
 
+    private int workers = 10;
+    private double epsilon = 0.2;
+
+    public AGMSConfig() {}
+
+    public AGMSConfig(int workers, double epsilon){
+        this.workers = workers;
+        this.epsilon = epsilon;
+    }
+
     @Override
     public TypeInformation<Map<Tuple2<Integer, Integer>, Double>> getAccType() {
         return Types.MAP(Types.TUPLE(Types.INT, Types.INT), Types.DOUBLE);
@@ -37,7 +47,7 @@ public class AGMSConfig implements BaseConfig<Map<Tuple2<Integer, Integer>, Doub
 
     @Override
     public Integer workers() {
-        return 10;
+        return workers;
     }
 
     @Override
@@ -101,7 +111,7 @@ public class AGMSConfig implements BaseConfig<Map<Tuple2<Integer, Integer>, Doub
 
     @Override
     public SafeZone initializeSafeZone(AGMSSketch E) {
-        double e = 0.2;
+        double e = epsilon;
         double med = median(E.values());
         return new SelfJoinAGMS(E.values(), (1-e)*med, (1+e)*med, true);
     }

@@ -58,7 +58,7 @@ public class MonitoringJob {
         /**
          *  The FGM configuration class. (User-implemented functions)
          */
-        AGMSConfig config = new AGMSConfig();
+        AGMSConfig config = new AGMSConfig(parameters.getInt("workers", defWorkers), parameters.getDouble("epsilon", defEpsilon));
 
         /**
          *  Dummy Source to Initialize coordinator

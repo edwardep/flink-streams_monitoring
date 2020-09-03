@@ -18,4 +18,7 @@ public class DefJobParameters {
     //String defOutputPath = "C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/outputSk.txt";
     public static String defOutputPath = "C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/outputSk_15m_4.txt";
     public static String defJobName = "FGM-pipeline";
+
+    public static int defWorkers = 10;
+    public static double defEpsilon = 0.2;
 }

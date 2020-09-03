@@ -50,6 +50,8 @@ public class MonitoringJobWithKafka {
         --window 3600 \
         --slide 5\
         --warmup 5
+        --workers 10
+        --epsilon 0.2
          */
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -62,7 +64,7 @@ public class MonitoringJobWithKafka {
         /**
          *  The FGM configuration class. (User-implemented functions)
          */
-        AGMSConfig config = new AGMSConfig();
+        AGMSConfig config = new AGMSConfig(parameters.getInt("workers", defWorkers), parameters.getDouble("epsilon", defEpsilon));
 
         /**
          *  Dummy Source to Initialize coordinator

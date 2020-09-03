@@ -3,13 +3,18 @@ package test_utils;
 import configurations.BaseConfig;
 import configurations.TestP1Config;
 import datatypes.InputRecord;
+import datatypes.InternalStream;
 import datatypes.Vector;
+import datatypes.internals.Input;
 import org.apache.flink.api.common.functions.AggregateFunction;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.streaming.api.TimeCharacteristic;
+import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.ProcessFunction;
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.time.Time;
@@ -17,13 +22,52 @@ import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 import org.junit.Test;
 
+import sources.WorldCupMapSource;
 import sources.WorldCupSource;
 
 import java.io.IOException;
+import java.util.HashMap;
+
+import static utils.DefJobParameters.defInputPath;
 
 
 public class Validation {
     private TestP1Config cfg = new TestP1Config();
+
+    @Test
+    public void naive() throws Exception {
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.setParallelism(1);
+        env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
+
+        String defInputPath = "D:/Documents/WorldCup_tools/ita_public_tools/output/wc_day46_1.txt";
+        env
+                .readTextFile(defInputPath)
+                .flatMap(new WorldCupMapSource(cfg))
+                .process(new NaiveProcess())
+                .writeAsText("C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/validation_windowless.txt", FileSystem.WriteMode.OVERWRITE);
+
+        env.execute();
+    }
+
+    private static class NaiveProcess extends ProcessFunction<InternalStream, String> {
+
+        private TestP1Config cfg = new TestP1Config();
+
+        Vector state = new Vector();
+        int count = 0;
+        @Override
+        public void processElement(InternalStream internalStream, Context context, Collector<String> collector) throws Exception {
+            Tuple2<Integer, Integer> key = ((Input)internalStream).getKey();
+            Double val = ((Input)internalStream).getVal();
+            state.map().put(key, state.getValue(key) + val);
+
+            if(count % 1000 == 0)
+                collector.collect(cfg.queryFunction(cfg.scaleVector(state, 1.0/10), ((Input)internalStream).getTimestamp()));
+
+            count++;
+        }
+    }
 
     @Test
     public void centralized() throws Exception {
