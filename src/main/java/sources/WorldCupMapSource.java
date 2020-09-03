@@ -2,11 +2,13 @@ package sources;
 
 import configurations.BaseConfig;
 import datatypes.InputRecord;
+import datatypes.InternalStream;
+import datatypes.internals.Input;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.util.Collector;
 
-public class WorldCupMapSource implements FlatMapFunction<String, InputRecord> {
+public class WorldCupMapSource implements FlatMapFunction<String, InternalStream> {
 
     private BaseConfig<?,?,?> cfg;
 
@@ -17,7 +19,7 @@ public class WorldCupMapSource implements FlatMapFunction<String, InputRecord> {
     private int count = 0;
 
     @Override
-    public void flatMap(String input, Collector<InputRecord> out) throws Exception {
+    public void flatMap(String input, Collector<InternalStream> out) throws Exception {
         String[] tokens = input.split(";");
 
         // multiplying by 1000 because world cup dataset has unix timestamps in seconds
@@ -29,7 +31,7 @@ public class WorldCupMapSource implements FlatMapFunction<String, InputRecord> {
          *      timestamp = this is used by the timestamp extractor
          *      Tuple2.of( Tuple2.of(ClientID, request_type) ,  1.0 )   -> (key, val)
          */
-        InputRecord event = new InputRecord(
+        Input event = new Input(
                 hashStreamID(tokens[WCStruct.server.ordinal()]),
                 timestampMillis,
                 Tuple2.of(

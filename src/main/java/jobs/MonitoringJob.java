@@ -79,14 +79,14 @@ public class MonitoringJob {
         /**
          *  Reading line by line from file and streaming POJOs
          */
-        DataStream<InputRecord> streamFromFile = env
+        DataStream<InternalStream> streamFromFile = env
                 .readTextFile(parameters.get("input", defInputPath))
                 .flatMap(new WorldCupMapSource(config));
 
         /**
          *  Creating Iterative Stream
          */
-        IterativeStream.ConnectedIterativeStreams<InputRecord, InternalStream > iteration = streamFromFile
+        IterativeStream.ConnectedIterativeStreams<InternalStream, InternalStream > iteration = streamFromFile
                 .iterate()
                 .withFeedbackType(InternalStream.class);
 
@@ -95,7 +95,7 @@ public class MonitoringJob {
          *  This is the iteration Head. It merges the input and the feedback streams and forwards them to the main
          *  and the side output respectively.
          */
-        SingleOutputStreamOperator<InputRecord> iteration_input = iteration
+        SingleOutputStreamOperator<InternalStream> iteration_input = iteration
                 .process(new IterationHead());
 
 
@@ -103,22 +103,22 @@ public class MonitoringJob {
          *  Ascending Timestamp assigner & Sliding Window operator
          */
         SingleOutputStreamOperator<InternalStream> worker = iteration_input
-                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InputRecord>() {
-                    @Override
-                    public long extractAscendingTimestamp(InputRecord inputRecord) {
-                        return inputRecord.getTimestamp();
-                    }
-                })
-                .keyBy(InputRecord::getStreamID)
-                .timeWindow(
-                        Time.seconds(parameters.getInt("window", defWindowSize)),
-                        Time.seconds(parameters.getInt("slide", defSlideSize)))
-                .aggregate(
-                        new IncAggregation<>(config),
-                        new WindowFunction<>(config),
-                        config.getAccType(),                        // AggregateFunction ACC type
-                        config.getAccType(),                        // AggregateFunction V type
-                        TypeInformation.of(InternalStream.class))   // WindowFunction R type
+//                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InputRecord>() {
+//                    @Override
+//                    public long extractAscendingTimestamp(InputRecord inputRecord) {
+//                        return inputRecord.getTimestamp();
+//                    }
+//                })
+                .keyBy(InternalStream::getStreamID)
+//                .timeWindow(
+//                        Time.seconds(parameters.getInt("window", defWindowSize)),
+//                        Time.seconds(parameters.getInt("slide", defSlideSize)))
+//                .aggregate(
+//                        new IncAggregation<>(config),
+//                        new WindowFunction<>(config),
+//                        config.getAccType(),                        // AggregateFunction ACC type
+//                        config.getAccType(),                        // AggregateFunction V type
+//                        TypeInformation.of(InternalStream.class))   // WindowFunction R type
 
                 /**
                  * The KeyedCoProcessFunction contains all of fgm's worker logic.

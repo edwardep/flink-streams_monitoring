@@ -1,5 +1,7 @@
 package configurations;
 
+import datatypes.InputRecord;
+import datatypes.InternalStream;
 import datatypes.Vector;
 import datatypes.internals.GlobalEstimate;
 import fgm.SafeZone;
@@ -88,6 +90,10 @@ public interface BaseConfig<AccType, VectorType, RecordType> extends Serializabl
      */
     VectorType updateVector(AccType accumulator, VectorType vector);
 
+    VectorType updateVectorCashRegister(InternalStream inputRecord, VectorType vector);
+
+    default boolean slidingWindowEnabled() {return false; }
+
     /**
      * Pointwise Vector addition. Called by the coordinatorFunction when aggregating drift vectors or when updating
      * the global vector. It should return a new object and NOT alter the arguments.
@@ -110,6 +116,8 @@ public interface BaseConfig<AccType, VectorType, RecordType> extends Serializabl
     String queryFunction(VectorType estimate, long timestamp);
 
     SafeZone initializeSafeZone(VectorType global);
+
+
 
     // compress
 

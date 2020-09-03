@@ -3,6 +3,7 @@ package configurations;
 
 import configurations.BaseConfig;
 import datatypes.InputRecord;
+import datatypes.InternalStream;
 import datatypes.Vector;
 import datatypes.internals.GlobalEstimate;
 import fgm.SafeZone;
@@ -82,6 +83,12 @@ public class TestP4Config implements BaseConfig<Vector, Vector, InputRecord> {
             vector.map().put(entry.getKey(), vector.getValue(entry.getKey()) + entry.getValue());
         return vector;
     }
+
+    @Override
+    public Vector updateVectorCashRegister(InternalStream inputRecord, Vector vector) {
+        return null;
+    }
+
 
     @Override
     public double safeFunction(Vector drift, Vector estimate, SafeZone safeZone) {

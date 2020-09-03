@@ -2,6 +2,7 @@ package fgm;
 
 import configurations.BaseConfig;
 
+import datatypes.InputRecord;
 import datatypes.InternalStream;
 import datatypes.internals.Drift;
 import datatypes.internals.Increment;
@@ -31,6 +32,9 @@ public class WorkerFunction<AccType, VectorType> implements Serializable {
         state.setDrift(cfg.updateVector(input, state.getDrift()));
     }
 
+    public void updateDriftCashRegister(WorkerStateHandler<VectorType> state, InternalStream input) throws IOException {
+        state.setDrift(cfg.updateVectorCashRegister(input, state.getDrift()));
+    }
 
     /**
      * At the beginning of a Round, the Coordinator initializes the safeFunction's hyperparameters<br>

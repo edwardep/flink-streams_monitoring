@@ -1,7 +1,9 @@
 package configurations;
 
 import datatypes.InputRecord;
+import datatypes.InternalStream;
 import datatypes.internals.GlobalEstimate;
+import datatypes.internals.Input;
 import fgm.SafeZone;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeinfo.Types;
@@ -66,6 +68,13 @@ public class AGMSConfig implements BaseConfig<Map<Tuple2<Integer, Integer>, Doub
             long key = entry.getKey().hashCode(); // you could hash the 2 fields separately and concat them into a long
             vector.update(key, entry.getValue());
         }
+        return vector;
+    }
+
+    @Override
+    public AGMSSketch updateVectorCashRegister(InternalStream inputRecord, AGMSSketch vector) {
+        long key = ((Input)inputRecord).getKey().hashCode(); // you could hash the 2 fields separately and concat them into a long
+        vector.update(key, ((Input)inputRecord).getVal());
         return vector;
     }
 

@@ -5,6 +5,7 @@ import configurations.TestP1Config;
 import datatypes.InputRecord;
 import datatypes.InternalStream;
 import datatypes.Vector;
+import datatypes.internals.Input;
 import datatypes.internals.WindowSlide;
 import operators.IncAggregation;
 import operators.WindowFunction;
@@ -52,17 +53,17 @@ public class SlidingWindow {
         env
                 .readTextFile(defInputPath)
                 .flatMap(new WorldCupMapSource(config))
-                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InputRecord>() {
+                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InternalStream>() {
                     @Override
-                    public long extractAscendingTimestamp(InputRecord inputRecord) {
-                        return inputRecord.getTimestamp();
+                    public long extractAscendingTimestamp(InternalStream inputRecord) {
+                        return ((Input)inputRecord).getTimestamp();
                     }
                 })
-                .keyBy(InputRecord::getStreamID)
+                .keyBy(InternalStream::getStreamID)
                 .timeWindow(Time.seconds(1000), Time.seconds(5))
-                .process(new ProcessWindowFunction<InputRecord, String, String, TimeWindow>() {
+                .process(new ProcessWindowFunction<InternalStream, String, String, TimeWindow>() {
                     @Override
-                    public void process(String s, Context context, Iterable<InputRecord> iterable, Collector<String> collector) throws Exception {
+                    public void process(String s, Context context, Iterable<InternalStream> iterable, Collector<String> collector) throws Exception {
                             collector.collect(iterable.toString());
                     }
                 })
@@ -97,17 +98,17 @@ public class SlidingWindow {
         env
                 .addSource(new FlinkKafkaConsumer<>(topic, new SimpleStringSchema(), consumerProps).setStartFromEarliest())
                 .flatMap(new WorldCupMapSource(config))
-                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InputRecord>() {
+                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InternalStream>() {
                     @Override
-                    public long extractAscendingTimestamp(InputRecord inputRecord) {
-                        return inputRecord.getTimestamp();
+                    public long extractAscendingTimestamp(InternalStream inputRecord) {
+                        return ((Input)inputRecord).getTimestamp();
                     }
                 })
-                .keyBy(InputRecord::getStreamID)
+                .keyBy(InternalStream::getStreamID)
                 .timeWindow(Time.seconds(1000), Time.seconds(5))
-                .process(new ProcessWindowFunction<InputRecord, String, String, TimeWindow>() {
+                .process(new ProcessWindowFunction<InternalStream, String, String, TimeWindow>() {
                     @Override
-                    public void process(String s, Context context, Iterable<InputRecord> iterable, Collector<String> collector) throws Exception {
+                    public void process(String s, Context context, Iterable<InternalStream> iterable, Collector<String> collector) throws Exception {
                         collector.collect(iterable.toString());
                     }
                 })

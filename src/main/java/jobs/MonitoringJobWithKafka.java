@@ -4,6 +4,7 @@ import configurations.AGMSConfig;
 import datatypes.InputRecord;
 import datatypes.InternalStream;
 import datatypes.internals.InitCoordinator;
+import datatypes.internals.Input;
 import operators.CoordinatorProcessFunction;
 import operators.IncAggregation;
 import operators.WindowFunction;
@@ -35,6 +36,7 @@ public class MonitoringJobWithKafka {
     public static void main(String[] args) throws Exception {
 
         /*
+        bin/kafka-console-producer.sh --bootstrap-server localhost:9092 --topic input < c:\kafka\input\wc_day46_1.txt
         bin/kafka-topics.sh --create --topic kafka-input-topic --partitions 1 --replication-factor 1 --bootstrap-server localhost:9092
         bin/kafka-topics.sh --create --topic kafka-feedback-topic --partitions 10 --replication-factor 1 --bootstrap-server localhost:9092
 
@@ -42,6 +44,7 @@ public class MonitoringJobWithKafka {
         --input-topic "kafka-input-topic"
         --feedback-topic "kafka-feedback-topic"
         --output "hdfs://clu01.softnet.tuc.gr:8020/user/eepure/wc_part1_test_03.txt" \
+        --kafka-servers "localhost:9092"
         --parallelism 4 \
         --jobName "fgm-w3600-s5" \
         --window 3600 \
@@ -82,7 +85,7 @@ public class MonitoringJobWithKafka {
         /**
          *  Reading line by line from file and streaming POJOs
          */
-        DataStream<InputRecord> streamFromFile = env
+        DataStream<InternalStream> streamFromFile = env
                 .addSource(createConsumerInput(parameters).setStartFromEarliest())
                 .flatMap(new WorldCupMapSource(config));
 
@@ -95,37 +98,57 @@ public class MonitoringJobWithKafka {
                 .name("Iteration Src");
 
 
-        /**
-         *  Ascending Timestamp assigner & Sliding Window operator
-         */
-        SingleOutputStreamOperator<InternalStream> worker = streamFromFile
-                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InputRecord>() {
-                    @Override
-                    public long extractAscendingTimestamp(InputRecord inputRecord) {
-                        return inputRecord.getTimestamp();
-                    }
-                })
-                .keyBy(InputRecord::getStreamID)
-                .timeWindow(
-                        Time.seconds(parameters.getInt("window", defWindowSize)),
-                        Time.seconds(parameters.getInt("slide", defSlideSize)))
-                .aggregate(
-                        new IncAggregation<>(config),
-                        new WindowFunction<>(config),
-                        config.getAccType(),                        // AggregateFunction ACC type
-                        config.getAccType(),                        // AggregateFunction V type
-                        TypeInformation.of(InternalStream.class))   // WindowFunction R type
+        SingleOutputStreamOperator<InternalStream> worker;
 
-                /**
-                 * The KeyedCoProcessFunction contains all of fgm's worker logic.
-                 * Input1 -> Sliding Window output
-                 * Input2 -> Feedback stream from IterationHead side-output
-                 * Output -> Connects to Coordinator's Input1
-                 */
-                .connect(iteration)
-                .keyBy(InternalStream::getStreamID, InternalStream::getStreamID)
-                .process(new WorkerProcessFunction<>(config));
+        if(config.slidingWindowEnabled()) {
+            /**
+             *  Ascending Timestamp assigner & Sliding Window operator
+             */
+            worker = streamFromFile
+                    .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InternalStream>() {
+                        @Override
+                        public long extractAscendingTimestamp(InternalStream inputRecord) {
+                            return ((Input) inputRecord).getTimestamp();
+                        }
+                    })
+                    .keyBy(InternalStream::getStreamID)
 
+//                    .timeWindow(
+//                            Time.seconds(parameters.getInt("window", defWindowSize)),
+//                            Time.seconds(parameters.getInt("slide", defSlideSize)))
+//                    .aggregate(
+//                            new IncAggregation<>(config),
+//                            new WindowFunction<>(config),
+//                            config.getAccType(),                        // AggregateFunction ACC type
+//                            config.getAccType(),                        // AggregateFunction V type
+//                            TypeInformation.of(InternalStream.class))   // WindowFunction R type
+                    /**
+                     * The KeyedCoProcessFunction contains all of fgm's worker logic.
+                     * Input1 -> Sliding Window output
+                     * Input2 -> Feedback stream from IterationHead side-output
+                     * Output -> Connects to Coordinator's Input1
+                     */
+                    .connect(iteration)
+                    .keyBy(InternalStream::getStreamID, InternalStream::getStreamID)
+                    .process(new WorkerProcessFunction<>(config));
+        }
+        else {
+            /**
+             *  Ascending Timestamp assigner & Sliding Window operator
+             */
+            worker = streamFromFile
+                    .keyBy(InternalStream::getStreamID)
+
+                    /**
+                     * The KeyedCoProcessFunction contains all of fgm's worker logic.
+                     * Input1 -> Sliding Window output
+                     * Input2 -> Feedback stream from IterationHead side-output
+                     * Output -> Connects to Coordinator's Input1
+                     */
+                    .connect(iteration)
+                    .keyBy(InternalStream::getStreamID, InternalStream::getStreamID)
+                    .process(new WorkerProcessFunction<>(config));
+        }
         /**
          *  FGM Coordinator, a KeyedCoProcessFunction with:
          *  Input1 -> output of Workers

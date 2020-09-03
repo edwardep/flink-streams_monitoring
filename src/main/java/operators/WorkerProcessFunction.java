@@ -23,10 +23,14 @@ public class WorkerProcessFunction<AccType, VectorType>  extends KeyedCoProcessF
     @Override
     public void processElement1(InternalStream input, Context context, Collector<InternalStream> collector) throws Exception {
 
-        state.setLastTs(context.timestamp());
+        //state.setLastTs(context.timestamp());
+        state.setLastTs(((Input)input).getTimestamp());
         assert state.getLastTs() > 0;
 
-        fgm.updateDrift(state, ((WindowSlide<AccType>)input).getVector());
+
+        //fgm.updateDrift(state, ((WindowSlide<AccType>)input).getVector());
+
+        fgm.updateDriftCashRegister(state, input);
         fgm.subRoundProcess(state, collector);
     }
 

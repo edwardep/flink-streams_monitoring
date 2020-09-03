@@ -1,6 +1,7 @@
 package configurations;
 
 import datatypes.InputRecord;
+import datatypes.InternalStream;
 import datatypes.Vector;
 import datatypes.internals.GlobalEstimate;
 import fgm.SafeZone;
@@ -82,6 +83,12 @@ public class FgmConfig implements BaseConfig<Vector, Vector, InputRecord> {
     public Vector updateVector(Vector accumulator, Vector vector) {
         return null;
     }
+
+    @Override
+    public Vector updateVectorCashRegister(InternalStream inputRecord, Vector vector) {
+        return null;
+    }
+
 
     @Override
     public double safeFunction(Vector drift, Vector estimate, SafeZone safeZone) {
