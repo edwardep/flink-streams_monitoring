@@ -9,6 +9,7 @@ import operators.CoordinatorProcessFunction;
 import operators.IncAggregation;
 import operators.WindowFunction;
 import operators.WorkerProcessFunction;
+import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.core.fs.FileSystem;
@@ -16,12 +17,16 @@ import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
 import org.apache.flink.streaming.api.windowing.time.Time;
+import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
 import sources.WorldCupMapSource;
 import utils.Misc;
+
+import java.util.concurrent.TimeUnit;
 
 import static kafka.KafkaUtils.*;
 import static utils.DefJobParameters.*;
@@ -31,6 +36,8 @@ public class MonitoringJobWithKafka {
 
     private static final OutputTag<String> Q_estimate = new OutputTag<String>("estimate-side-output") {
     };
+
+    public static boolean endOfFile = false;
 
 
     public static void main(String[] args) throws Exception {
@@ -55,7 +62,7 @@ public class MonitoringJobWithKafka {
          */
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        ParameterTool parameters = ParameterTool.fromArgs(args);
+        ParameterTool parameters = ParameterTool.fromPropertiesFile("/src/main/java/parameters/tuc_cluster.properties");
         env.getConfig().setGlobalJobParameters(parameters);
         env.setParallelism(parameters.getInt("parallelism", defParallelism));
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
@@ -84,13 +91,17 @@ public class MonitoringJobWithKafka {
                 .name("coord_init");
 
 
+
         /**
          *  Reading line by line from file and streaming POJOs
          */
         DataStream<InternalStream> streamFromFile = env
                 .addSource(createConsumerInput(parameters).setStartFromEarliest())
+                .setParallelism(1)
                 .flatMap(new WorldCupMapSource(config));
-
+//        DataStream<InternalStream> streamFromFile = env
+//                .readTextFile(parameters.get("input", defInputPath))
+//                .flatMap(new WorldCupMapSource(config));
 
         /**
          *  Creating Iterative Stream
@@ -115,15 +126,15 @@ public class MonitoringJobWithKafka {
                     })
                     .keyBy(InternalStream::getStreamID)
 
-//                    .timeWindow(
-//                            Time.seconds(parameters.getInt("window", defWindowSize)),
-//                            Time.seconds(parameters.getInt("slide", defSlideSize)))
-//                    .aggregate(
-//                            new IncAggregation<>(config),
-//                            new WindowFunction<>(config),
-//                            config.getAccType(),                        // AggregateFunction ACC type
-//                            config.getAccType(),                        // AggregateFunction V type
-//                            TypeInformation.of(InternalStream.class))   // WindowFunction R type
+                    .timeWindow(
+                            Time.seconds(parameters.getInt("window", defWindowSize)),
+                            Time.seconds(parameters.getInt("slide", defSlideSize)))
+                    .aggregate(
+                            new IncAggregation<>(config),
+                            new WindowFunction<>(config),
+                            config.getAccType(),                        // AggregateFunction ACC type
+                            config.getAccType(),                        // AggregateFunction V type
+                            TypeInformation.of(InternalStream.class))   // WindowFunction R type
                     /**
                      * The KeyedCoProcessFunction contains all of fgm's worker logic.
                      * Input1 -> Sliding Window output
@@ -135,9 +146,7 @@ public class MonitoringJobWithKafka {
                     .process(new WorkerProcessFunction<>(config));
         }
         else {
-            /**
-             *  Ascending Timestamp assigner & Sliding Window operator
-             */
+
             worker = streamFromFile
                     .keyBy(InternalStream::getStreamID)
 
@@ -192,9 +201,11 @@ public class MonitoringJobWithKafka {
                 .name("Output");
 
 
-        System.out.println(env.getExecutionPlan());
+        //System.out.println(env.getExecutionPlan());
 
         Misc.printExecutionMessage(parameters);
-        env.execute(parameters.get("jobName", defJobName));
+        JobExecutionResult executionResult = env.execute(parameters.get("jobName", defJobName));
+
+        System.out.println("Runtime(ms): "+executionResult.getNetRuntime(TimeUnit.MILLISECONDS));
     }
 }

@@ -15,6 +15,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import state.CoordinatorStateHandler;
 
+import static jobs.MonitoringJobWithKafka.endOfFile;
+
 
 public class CoordinatorProcessFunction<VectorType> extends CoProcessFunction<InternalStream, InternalStream, InternalStream> {
 
@@ -30,7 +32,7 @@ public class CoordinatorProcessFunction<VectorType> extends CoProcessFunction<In
 
     @Override
     public void processElement1(InternalStream input, Context ctx, Collector<InternalStream> collector) throws Exception {
-        //System.out.println(input.getClass());
+        System.out.println(input.getClass());
         if (Drift.class.equals(input.getClass())) {
             fgm.handleDrift(state, (Drift<VectorType>) input, ctx, collector);
         } else if (Zeta.class.equals(input.getClass())) {
@@ -38,6 +40,7 @@ public class CoordinatorProcessFunction<VectorType> extends CoProcessFunction<In
         } else if (Increment.class.equals(input.getClass())) {
             fgm.handleIncrement(state, ((Increment) input).getPayload(), collector);
         }
+
     }
 
     @Override

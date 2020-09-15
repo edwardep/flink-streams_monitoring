@@ -13,6 +13,7 @@ import state.CoordinatorStateHandler;
 import java.io.IOException;
 
 import static jobs.MonitoringJob.Q_estimate;
+import static jobs.MonitoringJobWithKafka.endOfFile;
 
 
 /**
@@ -94,7 +95,10 @@ public class CoordinatorFunction<VectorType> {
         state.setSafeZone(cfg.initializeSafeZone(vec));
 
         /* Begin subRounds phase*/
-        broadcast_Estimate(state.getEstimate(), collector);
+        if(endOfFile)
+            broadcast_SigInt(collector);
+        else
+            broadcast_Estimate(state.getEstimate(), collector);
 
         /*  Wait asynchronously for increment values */
         state.setSync(false);
@@ -227,6 +231,10 @@ public class CoordinatorFunction<VectorType> {
     private void broadcast_Lambda(Double lambda, Collector<InternalStream> collector) {
         for (int key = 0; key < cfg.workers(); key++)
             collector.collect(new Lambda(String.valueOf(key), lambda));
+    }
+    public void broadcast_SigInt(Collector<InternalStream> collector) {
+        for (int key = 0; key < cfg.workers(); key++)
+            collector.collect(new SigInt(String.valueOf(key)));
     }
 
     // Psi_beta = (1 - lambda) * k * phi(BalanceVector / ((1 - lambda) * k))

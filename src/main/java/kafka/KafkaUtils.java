@@ -2,10 +2,7 @@ package kafka;
 
 import configurations.BaseConfig;
 import datatypes.InternalStream;
-import datatypes.internals.Lambda;
-import datatypes.internals.Quantum;
-import datatypes.internals.RequestDrift;
-import datatypes.internals.RequestZeta;
+import datatypes.internals.*;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.utils.ParameterTool;
@@ -23,6 +20,7 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.Random;
 
+import static jobs.MonitoringJobWithKafka.endOfFile;
 import static utils.DefJobParameters.*;
 
 public class KafkaUtils {
@@ -36,7 +34,7 @@ public class KafkaUtils {
         String topic = parameters.get("input-topic", defInputTopic);
         return new FlinkKafkaConsumer<>(
                 topic,
-                new SimpleStringSchema(),
+                new FiniteSimpleStringSchema(),
                 createProperties(parameters, "input-group"));
     }
 
@@ -58,13 +56,13 @@ public class KafkaUtils {
                         byte[] value = null;
                         if (mapper == null)
                             mapper = new ObjectMapper();
-
                         try {
                             type = mapper.writeValueAsBytes(record.type);
                             value = mapper.writeValueAsBytes(record);
                         } catch (JsonProcessingException e) {
                             System.err.println(e.toString());
                         }
+
                         return new ProducerRecord<>(topic, Integer.parseInt(record.getStreamID()), type, value);
                     }
                 },
@@ -85,11 +83,11 @@ public class KafkaUtils {
         return new FlinkKafkaConsumer<>(
                 topic,
                 new KafkaDeserializationSchema<InternalStream>() {
+                    //boolean sigInt = false;
                     ObjectMapper mapper;
-
                     @Override
                     public boolean isEndOfStream(InternalStream internalStream) {
-                        return false;
+                        return internalStream.type.equals("SigInt");
                     }
 
                     @Override
@@ -117,6 +115,9 @@ public class KafkaUtils {
                                     break;
                                 case "RequestDrift":
                                     retVal = mapper.readValue(record.value(), RequestDrift.class);
+                                    break;
+                                case "SigInt":
+                                    retVal = mapper.readValue(record.value(), SigInt.class);
                                     break;
                                 default:
                                     throw new UnsupportedOperationException("This object type is not supported by the kafka deserialization schema.");
@@ -159,5 +160,18 @@ public class KafkaUtils {
         Properties properties = new Properties();
         properties.setProperty("bootstrap.servers", parameters.get("kafka-servers", defKafkaServers));
         return properties;
+    }
+
+    private static class FiniteSimpleStringSchema extends SimpleStringSchema {
+        @Override
+        public boolean isEndOfStream(String nextElement) {
+            if(nextElement.equals("EOF")){
+                endOfFile = true;
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
     }
 }

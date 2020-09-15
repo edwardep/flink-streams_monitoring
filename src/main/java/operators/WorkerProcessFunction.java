@@ -22,21 +22,21 @@ public class WorkerProcessFunction<AccType, VectorType>  extends KeyedCoProcessF
 
     @Override
     public void processElement1(InternalStream input, Context context, Collector<InternalStream> collector) throws Exception {
-
-        //state.setLastTs(context.timestamp());
-        state.setLastTs(((Input)input).getTimestamp());
-        assert state.getLastTs() > 0;
-
-
-        //fgm.updateDrift(state, ((WindowSlide<AccType>)input).getVector());
-
-        fgm.updateDriftCashRegister(state, input);
+        //System.out.println("id:"+context.getCurrentKey()+", type:"+input.getClass().getName());
+        if(cfg.slidingWindowEnabled()) {
+            state.setLastTs(context.timestamp());
+            fgm.updateDrift(state, ((WindowSlide<AccType>) input).getVector());
+        }
+        else {
+            state.setLastTs(((Input) input).getTimestamp());
+            fgm.updateDriftCashRegister(state, input);
+        }
         fgm.subRoundProcess(state, collector);
     }
 
     @Override
     public void processElement2(InternalStream input, Context context, Collector<InternalStream> collector) throws Exception {
-        //System.out.println("id:"+context.getCurrentKey()+", type:"+input.getClass().getName());
+        System.out.println("id:"+context.getCurrentKey()+", type:"+input.getClass().getName());
 
         switch (input.type){
             case "GlobalEstimate":
@@ -56,6 +56,9 @@ public class WorkerProcessFunction<AccType, VectorType>  extends KeyedCoProcessF
             case "Lambda":
                 fgm.newRebalancedRound(state, ((Lambda) input).getLambda());
                 fgm.subRoundProcess(state, collector);
+                break;
+            case "SigInt":
+                break;
         }
     }
 

@@ -1,7 +1,6 @@
 package sources;
 
 import configurations.BaseConfig;
-import datatypes.InputRecord;
 import datatypes.InternalStream;
 import datatypes.internals.Input;
 import org.apache.flink.api.common.functions.FlatMapFunction;

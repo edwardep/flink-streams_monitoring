@@ -1,6 +1,5 @@
 package configurations;
 
-import datatypes.InputRecord;
 import datatypes.InternalStream;
 import datatypes.internals.GlobalEstimate;
 import datatypes.internals.Input;
@@ -18,7 +17,7 @@ import java.util.Map;
 import static sketches.SketchMath.*;
 
 
-public class AGMSConfig implements BaseConfig<Map<Tuple2<Integer, Integer>, Double>, AGMSSketch, InputRecord> {
+public class AGMSConfig implements BaseConfig<Map<Tuple2<Integer, Integer>, Double>, AGMSSketch, InternalStream> {
 
     private int workers = 10;
     private double epsilon = 0.2;
@@ -59,8 +58,10 @@ public class AGMSConfig implements BaseConfig<Map<Tuple2<Integer, Integer>, Doub
     public Map<Tuple2<Integer, Integer>, Double> newAccInstance() { return new HashMap<>(); }
 
     @Override
-    public Map<Tuple2<Integer, Integer>, Double> aggregateRecord(InputRecord record, Map<Tuple2<Integer, Integer>, Double> vector) {
-        vector.put(record.getKey(), vector.getOrDefault(record.getKey(), 0d) + record.getVal());
+    public Map<Tuple2<Integer, Integer>, Double> aggregateRecord(InternalStream record, Map<Tuple2<Integer, Integer>, Double> vector) {
+        Tuple2<Integer, Integer> key = ((Input)record).getKey();
+        Double val = ((Input)record).getVal();
+        vector.put(key, vector.getOrDefault(key, 0d) + val);
         return vector;
     }
 

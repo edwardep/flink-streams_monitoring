@@ -5,7 +5,7 @@ import org.apache.flink.api.common.functions.AggregateFunction;
 
 public class IncAggregation<In, Acc> implements AggregateFunction<In, Acc, Acc> {
 
-    private BaseConfig<Acc, ?, In> cfg;
+    private final BaseConfig<Acc, ?, In> cfg;
     public IncAggregation(BaseConfig<Acc, ?, In> cfg) { this.cfg = cfg; }
 
     @Override
