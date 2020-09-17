@@ -26,8 +26,8 @@ public class CoordinatorFunction<VectorType> {
     private long rounds = 0;
     private int subRounds = 0;
 
-    private boolean rebalancing = true;
-    public void disableRebalancing() { rebalancing = false; }
+    //private boolean rebalancing = true;
+
 
     private Double lambda = 1.0;
 
@@ -75,7 +75,8 @@ public class CoordinatorFunction<VectorType> {
             /*  Wait asynchronously for increment values */
             state.setSync(false);
 
-            System.out.println("Rebalancing Round with lambda = 0.5");
+            //System.out.println("Rebalancing Round with lambda = 0.5");
+            state.getRebalancedRoundsCounter().add(1);
             // reset
             lambda = 1.0;
         }
@@ -95,10 +96,7 @@ public class CoordinatorFunction<VectorType> {
         state.setSafeZone(cfg.initializeSafeZone(vec));
 
         /* Begin subRounds phase*/
-        if(endOfFile)
-            broadcast_SigInt(collector);
-        else
-            broadcast_Estimate(state.getEstimate(), collector);
+        broadcast_Estimate(state.getEstimate(), collector);
 
         /*  Wait asynchronously for increment values */
         state.setSync(false);
@@ -107,13 +105,14 @@ public class CoordinatorFunction<VectorType> {
         ctx.output(Q_estimate, cfg.queryFunction(state.getEstimate(), this.lastTs));
 
         /*  set lambda for upcoming rebalancing round */
-        if(rebalancing) lambda = 0.5;
+        if(cfg.rebalancingEnabled()) lambda = 0.5;
 
         /*  Cleanup */
         state.setAggregateState(null);
         state.setPsiBeta(0.0);
 
-        System.out.println("rounds: "+ (++rounds));
+        //System.out.println("rounds: "+ (++rounds));
+        state.getRoundsCounter().add(1);
     }
 
     /**
@@ -160,13 +159,13 @@ public class CoordinatorFunction<VectorType> {
             }
             else
             {
-                if(rebalancing && lambda < 1.0)
+                if(cfg.rebalancingEnabled() && lambda < 1.0)
                     broadcast_RequestDrift(collector);
 
-                if(rebalancing && lambda == 1.0)
+                if(cfg.rebalancingEnabled() && lambda == 1.0)
                     newRound(state, ctx, collector);
 
-                if(!rebalancing)
+                if(!cfg.rebalancingEnabled())
                     broadcast_RequestDrift(collector);
             }
         }
@@ -203,7 +202,8 @@ public class CoordinatorFunction<VectorType> {
             /*  Enable sync and wait for Phi(Xi) values */
             state.setSync(true);
 
-            System.out.println("subRounds: "+ (++subRounds));
+            //System.out.println("subRounds: "+ (++subRounds));
+            state.getSubroundsCounter().add(1);
         }
     }
 

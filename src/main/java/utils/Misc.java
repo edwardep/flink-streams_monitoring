@@ -11,7 +11,7 @@ public class Misc {
         msg += "\t--input-topic : "+parameters.get("input-topic", defInputTopic)+"\n";
         msg += "\t--feedback-topic : "+parameters.get("feedback-topic", defFeedbackTopic)+"\n";
         msg += "\t--output : "+parameters.get("output", defOutputPath)+"\n";
-        msg += "\t--kafka-servers: "+parameters.get("kafka-servers", defKafkaServers);
+        msg += "\t--kafka-servers: "+parameters.get("kafka-servers", defKafkaServers)+"\n";
         msg += "\t--parallelism : "+parameters.getInt("parallelism", defParallelism)+"\n";
         msg += "\t--window : "+parameters.getInt("window", defWindowSize)+"\n";
         msg += "\t--slide : "+parameters.getInt("slide", defSlideSize)+"\n";

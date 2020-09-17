@@ -91,7 +91,7 @@ public interface BaseConfig<AccType, VectorType, RecordType> extends Serializabl
     VectorType updateVectorCashRegister(InternalStream inputRecord, VectorType vector);
 
     default boolean slidingWindowEnabled() { return false; }
-
+    default boolean rebalancingEnabled() { return false; }
     /**
      * Pointwise Vector addition. Called by the coordinatorFunction when aggregating drift vectors or when updating
      * the global vector. It should return a new object and NOT alter the arguments.

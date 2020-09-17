@@ -60,10 +60,17 @@ public class MonitoringJobWithKafka {
         --workers 10
         --epsilon 0.2
          */
+        ParameterTool parameters;
+
+        if(args == null || args.length == 0){
+            System.err.println("The path to the properties file should be passed as argument");
+            return;
+        }
+        else{
+             parameters = ParameterTool.fromPropertiesFile(args[0]);
+        }
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        ParameterTool parameters = ParameterTool.fromPropertiesFile("/src/main/java/parameters/tuc_cluster.properties");
-        env.getConfig().setGlobalJobParameters(parameters);
         env.setParallelism(parameters.getInt("parallelism", defParallelism));
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 
@@ -71,7 +78,11 @@ public class MonitoringJobWithKafka {
         /**
          *  The FGM configuration class. (User-implemented functions)
          */
-        AGMSConfig config = new AGMSConfig(parameters.getInt("workers", defWorkers), parameters.getDouble("epsilon", defEpsilon));
+        AGMSConfig config = new AGMSConfig(
+                parameters.getInt("workers", defWorkers),
+                parameters.getDouble("epsilon", defEpsilon),
+                parameters.getBoolean("sliding-window", false),
+                parameters.getBoolean("rebalance", false));
 
         /**
          *  Dummy Source to Initialize coordinator
@@ -99,9 +110,6 @@ public class MonitoringJobWithKafka {
                 .addSource(createConsumerInput(parameters).setStartFromEarliest())
                 .setParallelism(1)
                 .flatMap(new WorldCupMapSource(config));
-//        DataStream<InternalStream> streamFromFile = env
-//                .readTextFile(parameters.get("input", defInputPath))
-//                .flatMap(new WorldCupMapSource(config));
 
         /**
          *  Creating Iterative Stream
@@ -207,5 +215,8 @@ public class MonitoringJobWithKafka {
         JobExecutionResult executionResult = env.execute(parameters.get("jobName", defJobName));
 
         System.out.println("Runtime(ms): "+executionResult.getNetRuntime(TimeUnit.MILLISECONDS));
+        System.out.println("Rounds: "+executionResult.getAccumulatorResult("roundsCounter"));
+        System.out.println("SubRound: "+executionResult.getAccumulatorResult("subroundsCounter"));
+        System.out.println("RebalancedRounds: "+executionResult.getAccumulatorResult("rebalancedRoundsCounter"));
     }
 }

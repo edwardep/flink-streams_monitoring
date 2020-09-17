@@ -2,6 +2,7 @@ package state;
 
 import configurations.BaseConfig;
 import fgm.SafeZone;
+import org.apache.flink.api.common.accumulators.IntCounter;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.common.state.ValueStateDescriptor;
@@ -23,6 +24,10 @@ public class CoordinatorStateHandler<VectorType>{
     private transient ValueState<Double> psiBeta;
     private transient ValueState<Integer> globalCounter;
 
+    private IntCounter roundsCounter = new IntCounter();
+    private IntCounter subroundsCounter = new IntCounter();
+    private IntCounter rebalancedRoundsCounter = new IntCounter();
+
     private RuntimeContext runtimeContext;
     private BaseConfig<?, VectorType, ?> cfg;
 
@@ -39,6 +44,10 @@ public class CoordinatorStateHandler<VectorType>{
         aggregateState = createState("aggregateState", cfg.getVectorType());
         estimate = createState("estimate", cfg.getVectorType());
         safeZone = createState("safeZone", Types.GENERIC(SafeZone.class));
+
+        runtimeContext.addAccumulator("roundsCounter", this.roundsCounter);
+        runtimeContext.addAccumulator("subroundsCounter", this.subroundsCounter);
+        runtimeContext.addAccumulator("rebalancedRoundsCounter", this.rebalancedRoundsCounter);
     }
 
     private <V> ValueState<V> createState(String name, TypeInformation<V> type) {
@@ -47,6 +56,18 @@ public class CoordinatorStateHandler<VectorType>{
     }
 
     /* Getters */
+    public IntCounter getRoundsCounter() {
+        return roundsCounter;
+    }
+
+    public IntCounter getSubroundsCounter() {
+        return subroundsCounter;
+    }
+
+    public IntCounter getRebalancedRoundsCounter() {
+        return rebalancedRoundsCounter;
+    }
+
     public VectorType getEstimate() throws IOException {
         return estimate.value() != null ? estimate.value() : cfg.newVectorInstance();
     }

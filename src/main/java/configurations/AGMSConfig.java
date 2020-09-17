@@ -21,12 +21,20 @@ public class AGMSConfig implements BaseConfig<Map<Tuple2<Integer, Integer>, Doub
 
     private int workers = 10;
     private double epsilon = 0.2;
+    private boolean window = false;
+    private boolean rebalance = false;
 
     public AGMSConfig() {}
 
     public AGMSConfig(int workers, double epsilon){
         this.workers = workers;
         this.epsilon = epsilon;
+    }
+    public AGMSConfig(int workers, double epsilon, boolean window, boolean rebalance){
+        this.workers = workers;
+        this.epsilon = epsilon;
+        this.window = window;
+        this.rebalance = rebalance;
     }
 
     @Override
@@ -37,6 +45,16 @@ public class AGMSConfig implements BaseConfig<Map<Tuple2<Integer, Integer>, Doub
     @Override
     public TypeReference<GlobalEstimate<AGMSSketch>> getTypeReference() {
         return new TypeReference<GlobalEstimate<AGMSSketch>>() {};
+    }
+
+    @Override
+    public boolean slidingWindowEnabled() {
+        return window;
+    }
+
+    @Override
+    public boolean rebalancingEnabled() {
+        return rebalance;
     }
 
     @Override

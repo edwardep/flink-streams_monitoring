@@ -7,6 +7,7 @@ import datatypes.internals.Increment;
 import datatypes.internals.InitCoordinator;
 import datatypes.internals.Zeta;
 import fgm.CoordinatorFunction;
+import org.apache.flink.api.common.accumulators.IntCounter;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.TimerService;
 import org.apache.flink.streaming.api.functions.co.CoProcessFunction;
@@ -32,7 +33,12 @@ public class CoordinatorProcessFunction<VectorType> extends CoProcessFunction<In
 
     @Override
     public void processElement1(InternalStream input, Context ctx, Collector<InternalStream> collector) throws Exception {
-        System.out.println(input.getClass());
+        //System.out.println(input.getClass());
+        if(endOfFile){
+            fgm.broadcast_SigInt(collector);
+            return;
+        }
+
         if (Drift.class.equals(input.getClass())) {
             fgm.handleDrift(state, (Drift<VectorType>) input, ctx, collector);
         } else if (Zeta.class.equals(input.getClass())) {
@@ -46,7 +52,6 @@ public class CoordinatorProcessFunction<VectorType> extends CoProcessFunction<In
     @Override
     public void processElement2(InternalStream input, Context ctx, Collector<InternalStream> collector) throws Exception {
         // here you can initialize the globalEstimate
-        fgm.disableRebalancing();
         long current = ctx.timerService().currentProcessingTime();
         ctx.timerService().registerProcessingTimeTimer(current + ((InitCoordinator)input).getWarmup()*1000);
     }

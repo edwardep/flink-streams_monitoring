@@ -61,7 +61,6 @@ public class CoordinatorFunction_test {
             public void processElement(InternalStream internalStream, Context context, Collector<InternalStream> collector) throws Exception {
                 // setup
                 CoProcessFunction.Context ctx = Mockito.mock(CoProcessFunction.Context.class);
-                fgm.disableRebalancing();
 
                 // mock input
                 InternalStream input = new Drift<>(0, new Vector(generateSequence(5)));
@@ -112,7 +111,6 @@ public class CoordinatorFunction_test {
             public void processElement(InternalStream input, Context context, Collector<InternalStream> collector) throws Exception {
                 // setup
                 CoProcessFunction.Context ctx = Mockito.mock(CoProcessFunction.Context.class);
-                fgm.disableRebalancing();
 
                 /*
                  *  TEST_CASE: As drift updates arrive, the coordinator aggregates them,
@@ -163,7 +161,6 @@ public class CoordinatorFunction_test {
                 // setup
                 Double zeta = -1.0;
                 CoProcessFunction.Context ctx = Mockito.mock(CoProcessFunction.Context.class);
-                fgm.disableRebalancing();
                 state.setEstimate(new Vector(generateSequence(5)));
 
                 // test_case: Workers send their Phi(X) values and coordinator computes Psi.
@@ -208,7 +205,6 @@ public class CoordinatorFunction_test {
             public void processElement(InternalStream input, Context context, Collector<InternalStream> collector) throws Exception {
                 // setup
                 CoProcessFunction.Context ctx = Mockito.mock(CoProcessFunction.Context.class);
-                fgm.disableRebalancing();
                 state.setEstimate(new Vector(generateSequence(5)));
 
                 /*
