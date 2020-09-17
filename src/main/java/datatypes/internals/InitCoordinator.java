@@ -4,6 +4,10 @@ import datatypes.InternalStream;
 
 public class InitCoordinator extends InternalStream {
     private int warmup;
+
+    public InitCoordinator() {
+    }
+
     public InitCoordinator(int warmup) {
         this.warmup = warmup;
     }
@@ -11,6 +15,10 @@ public class InitCoordinator extends InternalStream {
 
     public int getWarmup() {
         return warmup;
+    }
+
+    public void setWarmup(int warmup) {
+        this.warmup = warmup;
     }
 
     @Override

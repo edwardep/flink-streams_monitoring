@@ -6,6 +6,7 @@ public class Drift<VectorType> extends InternalStream {
     private long timestamp;
     private VectorType vector;
 
+    public Drift() {}
     public Drift(long timestamp, VectorType vector) {
         this.timestamp = timestamp;
         this.vector = vector;

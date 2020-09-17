@@ -11,6 +11,8 @@ public class Input extends InternalStream {
     private Tuple2<Integer, Integer> key;
     private Double val;
 
+    public Input() {}
+
     public Input(String streamID, long timestamp, Tuple2<Integer, Integer> key, Double val) {
         this.streamID = streamID;
         this.timestamp = timestamp;
