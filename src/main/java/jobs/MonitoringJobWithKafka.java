@@ -218,5 +218,6 @@ public class MonitoringJobWithKafka {
         System.out.println("Rounds: "+executionResult.getAccumulatorResult("roundsCounter"));
         System.out.println("SubRound: "+executionResult.getAccumulatorResult("subroundsCounter"));
         System.out.println("RebalancedRounds: "+executionResult.getAccumulatorResult("rebalancedRoundsCounter"));
+        System.out.println("======================================================================");
     }
 }

@@ -13,6 +13,8 @@ public class Misc {
         msg += "\t--output : "+parameters.get("output", defOutputPath)+"\n";
         msg += "\t--kafka-servers: "+parameters.get("kafka-servers", defKafkaServers)+"\n";
         msg += "\t--parallelism : "+parameters.getInt("parallelism", defParallelism)+"\n";
+        msg += "\t--sliding-window: "+parameters.getBoolean("sliding-window")+"\n";
+        msg += "\t--rebalancing: "+parameters.getBoolean("rebalance")+"\n";
         msg += "\t--window : "+parameters.getInt("window", defWindowSize)+"\n";
         msg += "\t--slide : "+parameters.getInt("slide", defSlideSize)+"\n";
         msg += "\t--warmup : "+parameters.getInt("warmup", defWarmup)+"\n";
