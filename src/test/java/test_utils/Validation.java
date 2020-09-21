@@ -6,6 +6,7 @@ import datatypes.InputRecord;
 import datatypes.InternalStream;
 import datatypes.Vector;
 import datatypes.internals.Input;
+import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.functions.AggregateFunction;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -40,14 +41,15 @@ public class Validation {
         env.setParallelism(1);
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 
-        String defInputPath = "D:/Documents/WorldCup_tools/ita_public_tools/output/wc_day46_1.txt";
+        String defInputPath = "/home/edwardep/Documents/wc_tools/output/wc_day46_1.txt";
         env
                 .readTextFile(defInputPath)
                 .flatMap(new WorldCupMapSource(cfg))
                 .process(new NaiveProcess())
-                .writeAsText("C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/validation_windowless.txt", FileSystem.WriteMode.OVERWRITE);
+                .writeAsText("/home/edwardep/flink-streams_monitoring/logs/validation_windowless.txt", FileSystem.WriteMode.OVERWRITE);
 
-        env.execute();
+        JobExecutionResult result = env.execute();
+        System.out.println("time: "+ result.getNetRuntime());
     }
 
     private static class NaiveProcess extends ProcessFunction<InternalStream, String> {

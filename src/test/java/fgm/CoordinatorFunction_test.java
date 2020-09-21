@@ -19,6 +19,7 @@ import org.mockito.Mockito;
 import state.CoordinatorStateHandler;
 import test_utils.Testable;
 
+import static fgm.CoordinatorFunction.*;
 import static junit.framework.TestCase.*;
 import static test_utils.Generators.generateSequence;
 
@@ -54,7 +55,6 @@ public class CoordinatorFunction_test {
     @Test
     public void aggregatingEstimate_test() throws Exception {
         source.process(new KeyedProcessFunction<String, InternalStream, InternalStream>() {
-            fgm.CoordinatorFunction fgm;
             CoordinatorStateHandler state;
 
             @Override
@@ -66,27 +66,26 @@ public class CoordinatorFunction_test {
                 InternalStream input = new Drift<>(0, new Vector(generateSequence(5)));
 
                 // call routine
-                fgm.handleDrift(state, (Drift) input, ctx, collector);
+                handleDrift(state, (Drift) input, ctx, collector, conf);
 
                 assertEquals(new Vector(generateSequence(5)), state.getEstimate());
 
                 state.setNodeCount(0);
                 // calling again, expecting the values to be doubled
-                fgm.handleDrift(state, (Drift) input, ctx, collector);
+                handleDrift(state, (Drift) input, ctx, collector, conf);
 
                 assertEquals(new Vector(generateSequence(5,2)), state.getEstimate());
 
                 state.setNodeCount(0);
                 // mock negative drift values
                 input = new Drift<>(0, new Vector(generateSequence(5, -1)));
-                fgm.handleDrift(state, (Drift) input, ctx, collector);
+                handleDrift(state, (Drift) input, ctx, collector, conf);
 
                 assertEquals(new Vector(generateSequence(5)), state.getEstimate());
             }
 
             @Override
             public void open(Configuration parameters) {
-                fgm = new fgm.CoordinatorFunction<>(conf);
                 state = new CoordinatorStateHandler<>(getRuntimeContext(), conf);
             }
         });
@@ -103,7 +102,6 @@ public class CoordinatorFunction_test {
         int uniqueStreams = 4;
 
         source.process(new KeyedProcessFunction<String, InternalStream, InternalStream>() {
-            fgm.CoordinatorFunction fgm;
             CoordinatorStateHandler state;
             TestP4Config conf = new TestP4Config(); // overriding setup configuration
 
@@ -118,7 +116,7 @@ public class CoordinatorFunction_test {
                  */
                 for (int tid = 0; tid < uniqueStreams; tid++) {
                     InternalStream payload = new Drift<>(0, new Vector(generateSequence(10)));
-                    fgm.handleDrift(state, (Drift) payload, ctx, collector);
+                    handleDrift(state, (Drift) payload, ctx, collector, conf);
                 }
 
                 // validate : expecting global state to be equal to each drift since it is the result of Averaging
@@ -129,7 +127,6 @@ public class CoordinatorFunction_test {
 
             @Override
             public void open(Configuration parameters) {
-                fgm = new fgm.CoordinatorFunction<>(conf);
                 state = new CoordinatorStateHandler<>(getRuntimeContext(), conf);
             }
         }).addSink(new Testable.InternalStreamSink());
@@ -152,7 +149,6 @@ public class CoordinatorFunction_test {
         int uniqueStreams = 4;
 
         source.process(new KeyedProcessFunction<String, InternalStream, InternalStream>() {
-            fgm.CoordinatorFunction fgm;
             CoordinatorStateHandler state;
             TestP4Config conf = new TestP4Config(); // overriding setup configuration
 
@@ -165,7 +161,7 @@ public class CoordinatorFunction_test {
 
                 // test_case: Workers send their Phi(X) values and coordinator computes Psi.
                 for (int tid = 0; tid < uniqueStreams; tid++)
-                    fgm.handleZeta(state, ctx, zeta, collector);
+                    handleZeta(state, ctx, zeta, collector, conf);
 
                 // validate
                 assertEquals(uniqueStreams * zeta, state.getPsi());
@@ -173,7 +169,6 @@ public class CoordinatorFunction_test {
 
             @Override
             public void open(Configuration parameters) {
-                fgm = new fgm.CoordinatorFunction<>(conf);
                 state = new CoordinatorStateHandler<>(getRuntimeContext(), conf);
             }
         }).addSink(new Testable.InternalStreamSink());
@@ -197,7 +192,6 @@ public class CoordinatorFunction_test {
         Double zeta = 1.0;
         int uniqueStreams = 4;
         source.process(new KeyedProcessFunction<String, InternalStream, InternalStream>() {
-            fgm.CoordinatorFunction fgm;
             CoordinatorStateHandler state;
             TestP4Config conf = new TestP4Config();
 
@@ -212,7 +206,7 @@ public class CoordinatorFunction_test {
                  *   should begin.
                  */
                 for (int tid = 0; tid < uniqueStreams; tid++)
-                    fgm.handleZeta(state, ctx, zeta, collector);
+                    handleZeta(state, ctx, zeta, collector, conf);
 
                 // validate
                 assertEquals(uniqueStreams * zeta, state.getPsi());
@@ -223,7 +217,6 @@ public class CoordinatorFunction_test {
 
             @Override
             public void open(Configuration parameters) {
-                fgm = new fgm.CoordinatorFunction<>(conf);
                 state = new CoordinatorStateHandler<>(getRuntimeContext(), conf);
             }
         }).addSink(new Testable.InternalStreamSink());
@@ -246,7 +239,6 @@ public class CoordinatorFunction_test {
     public void fgm_handleIncrement_test() throws Exception {
         int uniqueStreams = 4;
         source.process(new KeyedProcessFunction<String, InternalStream, InternalStream>() {
-            fgm.CoordinatorFunction fgm;
             CoordinatorStateHandler state;
             TestP4Config conf = new TestP4Config();
 
@@ -261,7 +253,7 @@ public class CoordinatorFunction_test {
                  *      Expecting to increase the global counter and do nothing
                  */
                 Integer increment = 1;
-                fgm.handleIncrement(state, increment, collector);
+                handleIncrement(state, increment, collector, conf);
                 assertEquals(increment, state.getGlobalCounter());
                 assertFalse(state.getSync());
 
@@ -272,14 +264,13 @@ public class CoordinatorFunction_test {
                  *      In this case it must broadcast a ZetaRequest and disable sync.
                  */
                 increment = 5; // obv this increment > uniqueStreams (k)
-                fgm.handleIncrement(state, increment, collector);
+                handleIncrement(state, increment, collector, conf);
                 assertEquals((Integer) 0, state.getGlobalCounter());
                 assertTrue(state.getSync());
             }
 
             @Override
             public void open(Configuration parameters) {
-                fgm = new fgm.CoordinatorFunction<>(conf);
                 state = new CoordinatorStateHandler<>(getRuntimeContext(), conf);
             }
         }).addSink(new Testable.InternalStreamSink());
@@ -302,7 +293,6 @@ public class CoordinatorFunction_test {
     public void fgm_multipleSubRounds_test() throws Exception {
         int uniqueStreams = 4;
         source.process(new KeyedProcessFunction<String, InternalStream, InternalStream>() {
-            fgm.CoordinatorFunction fgm;
             CoordinatorStateHandler state;
             TestP4Config conf = new TestP4Config();
 
@@ -315,20 +305,19 @@ public class CoordinatorFunction_test {
                     // receiving Phi(Xi), new SubRound
                     InternalStream stream = new Zeta(1.0);
                     for (int i = 0; i < uniqueStreams; i++)
-                        fgm.handleZeta(state, ctx, ((Zeta) stream).getPayload(), collector);
+                        handleZeta(state, ctx, ((Zeta) stream).getPayload(), collector, conf);
 
                     assertFalse(state.getSync());
 
                     // receiving increment (violation), end of subRound
                     stream = new Increment(5);
-                    fgm.handleIncrement(state, ((Increment) stream).getPayload(), collector);
+                    handleIncrement(state, ((Increment) stream).getPayload(), collector, conf);
                     assertTrue(state.getSync());
                 }
             }
 
             @Override
             public void open(Configuration parameters) {
-                fgm = new fgm.CoordinatorFunction<>(conf);
                 state = new CoordinatorStateHandler<>(getRuntimeContext(), conf);
             }
         }).addSink(new Testable.InternalStreamSink());

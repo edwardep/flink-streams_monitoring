@@ -6,16 +6,14 @@ import datatypes.internals.Drift;
 import datatypes.internals.Increment;
 import datatypes.internals.InitCoordinator;
 import datatypes.internals.Zeta;
-import fgm.CoordinatorFunction;
-import org.apache.flink.api.common.accumulators.IntCounter;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.streaming.api.TimerService;
 import org.apache.flink.streaming.api.functions.co.CoProcessFunction;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import state.CoordinatorStateHandler;
 
+import static fgm.CoordinatorFunction.*;
 import static jobs.MonitoringJobWithKafka.endOfFile;
 
 
@@ -24,8 +22,7 @@ public class CoordinatorProcessFunction<VectorType> extends CoProcessFunction<In
     private transient static Logger LOG = LoggerFactory.getLogger(CoordinatorProcessFunction.class);
 
     private CoordinatorStateHandler<VectorType> state;
-    private CoordinatorFunction<VectorType> fgm;
-    private BaseConfig<?, VectorType, ?> cfg;
+    private final BaseConfig<?, VectorType, ?> cfg;
 
     public CoordinatorProcessFunction(BaseConfig<?, VectorType, ?> cfg) {
         this.cfg = cfg;
@@ -35,16 +32,20 @@ public class CoordinatorProcessFunction<VectorType> extends CoProcessFunction<In
     public void processElement1(InternalStream input, Context ctx, Collector<InternalStream> collector) throws Exception {
         //System.out.println(input.getClass());
         if(endOfFile){
-            fgm.broadcast_SigInt(collector);
+            broadcast_SigInt(collector, cfg);
             return;
         }
 
-        if (Drift.class.equals(input.getClass())) {
-            fgm.handleDrift(state, (Drift<VectorType>) input, ctx, collector);
-        } else if (Zeta.class.equals(input.getClass())) {
-            fgm.handleZeta(state, ctx, ((Zeta) input).getPayload(), collector);
-        } else if (Increment.class.equals(input.getClass())) {
-            fgm.handleIncrement(state, ((Increment) input).getPayload(), collector);
+        switch (input.type){
+            case "Drift":
+                handleDrift(state, (Drift<VectorType>) input, ctx, collector, cfg);
+                break;
+            case "Zeta":
+                handleZeta(state, ctx, ((Zeta) input).getPayload(), collector, cfg);
+                break;
+            case "Increment":
+                handleIncrement(state, ((Increment) input).getPayload(), collector, cfg);
+                break;
         }
 
     }
@@ -59,13 +60,12 @@ public class CoordinatorProcessFunction<VectorType> extends CoProcessFunction<In
     @Override
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
-        fgm = new CoordinatorFunction<>(cfg);
         state = new CoordinatorStateHandler<>(getRuntimeContext(), cfg);
     }
 
     @Override
     public void onTimer(long timestamp, OnTimerContext ctx, Collector<InternalStream> out) throws Exception {
         super.onTimer(timestamp, ctx, out);
-        fgm.broadcast_RequestDrift(out);
+        broadcast_RequestDrift(out, cfg);
     }
 }

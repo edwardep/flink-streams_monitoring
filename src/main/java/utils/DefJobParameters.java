@@ -2,7 +2,7 @@ package utils;
 
 public class DefJobParameters {
 
-    public static String defInputTopic = "input-testset-5000";
+    public static String defInputTopic = "input-testset-day46";
     public static String defFeedbackTopic = "feedback";
     public static String defKafkaServers = "localhost:9092";
 
@@ -21,4 +21,5 @@ public class DefJobParameters {
 
     public static int defWorkers = 10;
     public static double defEpsilon = 0.2;
+
 }

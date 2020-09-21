@@ -4,6 +4,7 @@ import configurations.BaseConfig;
 
 import datatypes.InputRecord;
 import datatypes.InternalStream;
+import datatypes.Vector;
 import datatypes.internals.Drift;
 import datatypes.internals.Increment;
 import datatypes.internals.Zeta;
@@ -18,21 +19,21 @@ import java.io.Serializable;
 /**
  * The WorkerFunction class contains all the required FGM Worker Node methods.
  */
-public class WorkerFunction<AccType, VectorType> implements Serializable {
+public class WorkerFunction implements Serializable {
     private transient static Logger LOG = LoggerFactory.getLogger(WorkerFunction.class);
-
-    private BaseConfig<AccType, VectorType, ?> cfg;
-    public WorkerFunction(BaseConfig<AccType, VectorType, ?> cfg) { this.cfg = cfg; }
-
 
     /**
      * The second argument (input) might change from RecordType to VectorType when SlidingWindow gets implemented.
      */
-    public void updateDrift(WorkerStateHandler<VectorType> state, AccType input) throws Exception {
+    public static <AccType, VectorType> void updateDrift(WorkerStateHandler<VectorType> state,
+                                                         AccType input,
+                                                         BaseConfig<AccType, VectorType, ?> cfg) throws Exception {
         state.setDrift(cfg.updateVector(input, state.getDrift()));
     }
 
-    public void updateDriftCashRegister(WorkerStateHandler<VectorType> state, InternalStream input) throws IOException {
+    public static <VectorType> void updateDriftCashRegister(WorkerStateHandler<VectorType> state,
+                                                            InternalStream input,
+                                                            BaseConfig<?, VectorType, ?> cfg) throws IOException {
         state.setDrift(cfg.updateVectorCashRegister(input, state.getDrift()));
     }
 
@@ -43,8 +44,9 @@ public class WorkerFunction<AccType, VectorType> implements Serializable {
      * with the following formula: Quantum = - fi(0)/2.<br>
      *
      */
-    public void newRound(WorkerStateHandler<VectorType> state,
-                         VectorType vector) throws Exception {
+    public static <VectorType> void newRound(WorkerStateHandler<VectorType> state,
+                                             VectorType vector,
+                                             BaseConfig<?, VectorType, ?> cfg) throws Exception {
 
         state.setEstimate(vector);
         SafeZone sz = cfg.initializeSafeZone(vector);
@@ -69,8 +71,8 @@ public class WorkerFunction<AccType, VectorType> implements Serializable {
      * Emits a <i>POJO</i> containing the <b>drift vector</b> and other info.<br>
      * This function is called at the end of a Round.<br>
      */
-    public void sendDrift(WorkerStateHandler<VectorType> state,
-                          Collector<InternalStream> out) throws Exception {
+    public static <VectorType> void sendDrift(WorkerStateHandler<VectorType> state,
+                                              Collector<InternalStream> out) throws Exception {
 
         // Send Drift Vector to the Coordinator
         out.collect(new Drift<>(state.getLastTs(), state.getDrift()));
@@ -83,8 +85,8 @@ public class WorkerFunction<AccType, VectorType> implements Serializable {
      * Emits a <i>POJO</i> containing the <b>fi value</b> when requested. That happens when a violation occurs<br>
      * at the Coordinator: sum(Ci) &gt; k <br>
      */
-    public void sendZeta(WorkerStateHandler<VectorType> state,
-                         Collector<InternalStream> out) throws IOException {
+    public static <VectorType> void sendZeta(WorkerStateHandler<VectorType> state,
+                                             Collector<InternalStream> out) throws IOException {
 
         // halt sub-round phase
         state.setSubRoundPhase(false);
@@ -98,8 +100,8 @@ public class WorkerFunction<AccType, VectorType> implements Serializable {
      * At the beginning of a sub-round, the coordinator ships the quantum value to all worker nodes. <br>
      * Each local node saves the quantum value and initializes the sub-round phase.<br>
      */
-    public void newSubRound(WorkerStateHandler<VectorType> state,
-                            Double payload) throws IOException {
+    public static <VectorType> void newSubRound(WorkerStateHandler<VectorType> state,
+                                                Double payload) throws IOException {
 
         if (payload == null) {
             System.err.println("The received payload (Quantum) is empty. Sub-Round phase will not restart.");
@@ -130,8 +132,9 @@ public class WorkerFunction<AccType, VectorType> implements Serializable {
      *     where <code>new_counter = (int) (( &phi;(Xi) - Z(Xi) ) / Quantum) </code> according to the fgm protocol.
 
      */
-    public void subRoundProcess(WorkerStateHandler<VectorType> state,
-                                Collector<InternalStream> out) throws Exception {
+    public static <VectorType> void subRoundProcess(WorkerStateHandler<VectorType> state,
+                                                    Collector<InternalStream> out,
+                                                    BaseConfig<?, VectorType,?> cfg) throws Exception {
 
         /*  While waiting for new Round or new SubRound, do nothing */
         if (!state.getSubRoundPhase())
@@ -167,8 +170,9 @@ public class WorkerFunction<AccType, VectorType> implements Serializable {
         }
     }
 
-    public void newRebalancedRound(WorkerStateHandler<VectorType> state,
-                                   Double payload) throws Exception {
+    public static <VectorType> void newRebalancedRound(WorkerStateHandler<VectorType> state,
+                                                       Double payload,
+                                                       BaseConfig<?, VectorType,?> cfg) throws Exception {
 
         // save lambda
         state.setLambda(payload);

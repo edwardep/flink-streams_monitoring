@@ -22,6 +22,7 @@ import state.WorkerStateHandler;
 import test_utils.Testable;
 import java.util.HashMap;
 
+import static fgm.WorkerFunction.*;
 import static junit.framework.TestCase.*;
 import static test_utils.Generators.generateSequence;
 
@@ -62,7 +63,6 @@ public class WorkerFunction_test {
     @Test
     public void updateDrift_test() throws Exception {
         source.process(new KeyedProcessFunction<String, InternalStream, InternalStream>() {
-            fgm.WorkerFunction fgm;
             WorkerStateHandler state;
 
             @Override
@@ -72,7 +72,7 @@ public class WorkerFunction_test {
                 Vector batchUpdate = new Vector(generateSequence(5));
 
                 // test_case: previous drift is empty (checking ValueState null return)
-                fgm.updateDrift(state, batchUpdate);
+                updateDrift(state, batchUpdate, conf);
 
                 for(int i = 0; i < 5; i++)
                     assert ((Vector) state.getDrift()).getValue(Tuple2.of(i,i)) == i;
@@ -82,7 +82,7 @@ public class WorkerFunction_test {
                 state.setDrift(prevDrift);
 
                 // retry
-                fgm.updateDrift(state, batchUpdate);
+                updateDrift(state, batchUpdate, conf);
 
                 for(int i = 0; i < 5; i++)
                     assert ((Vector) state.getDrift()).getValue(Tuple2.of(i,i)) == i*2;
@@ -90,7 +90,6 @@ public class WorkerFunction_test {
 
             @Override
             public void open(Configuration parameters) {
-                fgm = new fgm.WorkerFunction<>(conf);
                 state = new WorkerStateHandler<>(getRuntimeContext(), conf);
             }
         });
@@ -105,7 +104,6 @@ public class WorkerFunction_test {
     @Test
     public void newSubRound_test() throws Exception {
         source.process(new KeyedProcessFunction<String, InternalStream, InternalStream>() {
-            fgm.WorkerFunction fgm;
             WorkerStateHandler state;
 
             @Override
@@ -114,7 +112,7 @@ public class WorkerFunction_test {
                 Double receivedQuantum = 1.5;
 
                 // test_case: handle the received Quantum value and restart the sub-round phase
-                fgm.newSubRound(state, receivedQuantum);
+                newSubRound(state, receivedQuantum);
 
                 // validate
                 assertEquals(1.5, state.getQuantum());
@@ -125,7 +123,6 @@ public class WorkerFunction_test {
 
             @Override
             public void open(Configuration parameters) {
-                fgm = new fgm.WorkerFunction<>(conf);
                 state = new WorkerStateHandler<>(getRuntimeContext(), conf);
             }
         });
@@ -140,7 +137,6 @@ public class WorkerFunction_test {
     @Test
     public void newRound_test() throws Exception {
         source.process(new KeyedProcessFunction<String, InternalStream, InternalStream>() {
-            fgm.WorkerFunction fgm;
             WorkerStateHandler state;
 
             @Override
@@ -149,7 +145,7 @@ public class WorkerFunction_test {
                 Vector hyperparams = new Vector(generateSequence(1,10d));
 
                 // test_case: Hyperparameters are received and a new Round begins
-                fgm.newRound(state, hyperparams);
+                newRound(state, hyperparams, conf);
 
                 // validate
                 assertEquals("{(0,0)=10.0}", state.getEstimate().toString());
@@ -162,7 +158,6 @@ public class WorkerFunction_test {
 
             @Override
             public void open(Configuration parameters) {
-                fgm = new fgm.WorkerFunction<>(conf);
                 state = new WorkerStateHandler<>(getRuntimeContext(), conf);
             }
         });
@@ -177,7 +172,6 @@ public class WorkerFunction_test {
     @Test
     public void subRoundProcess_test() throws Exception {
         source.process(new KeyedProcessFunction<String, InternalStream, InternalStream>() {
-            fgm.WorkerFunction fgm;
             WorkerStateHandler state;
 
             @Override
@@ -186,7 +180,7 @@ public class WorkerFunction_test {
                 state.setEstimate(new Vector(generateSequence(1,10d)));
 
                 // test_case: SubRound phase is not yet enabled
-                fgm.subRoundProcess(state, collector);
+                subRoundProcess(state, collector, conf);
 
                 // early exit (first condition)
                 assertEquals(0.0, state.getFi());
@@ -195,7 +189,7 @@ public class WorkerFunction_test {
                 state.setSubRoundPhase(true);
 
                 // test_case: Drift is empty, should exit immediately
-                fgm.subRoundProcess(state, collector);
+                subRoundProcess(state, collector, conf);
 
                 // early exit (second condition)
                 assertEquals(0.0, state.getFi());
@@ -207,7 +201,7 @@ public class WorkerFunction_test {
                 state.setSubRoundInit(false);
 
                 // test_case: A drift update occurred. Expecting the new counter to increase by 1, and phi < -1.0
-                fgm.subRoundProcess(state, collector);
+                subRoundProcess(state, collector, conf);
 
                 // validate
                 assertEquals(1.5, state.getFi());
@@ -216,7 +210,6 @@ public class WorkerFunction_test {
 
             @Override
             public void open(Configuration parameters) {
-                fgm = new fgm.WorkerFunction<>(conf);
                 state = new WorkerStateHandler<>(getRuntimeContext(), conf);
             }
         }).addSink(new Testable.InternalStreamSink());
@@ -238,7 +231,6 @@ public class WorkerFunction_test {
         HashMap<Tuple2<Integer, Integer>, Double> mock = generateSequence(10);
 
         source.process(new KeyedProcessFunction<String, InternalStream, InternalStream>() {
-            fgm.WorkerFunction fgm;
             WorkerStateHandler state;
 
             @Override
@@ -247,7 +239,7 @@ public class WorkerFunction_test {
                 state.setDrift(new Vector(mock));
 
                 // test_case: At the end of a Round, Nodes are requested to sent their driftVectors
-                fgm.sendDrift(state, collector);
+                sendDrift(state, collector);
 
                 // validate: vector should be empty after the previous function
                 assertEquals(state.getDrift(), conf.newVectorInstance());
@@ -255,7 +247,6 @@ public class WorkerFunction_test {
 
             @Override
             public void open(Configuration parameters) {
-                fgm = new fgm.WorkerFunction<>(conf);
                 state = new WorkerStateHandler<>(getRuntimeContext(), conf);
             }
         }).addSink(new Testable.InternalStreamSink());
@@ -274,7 +265,6 @@ public class WorkerFunction_test {
     @Test
     public void sendZeta_test() throws Exception {
         source.process(new KeyedProcessFunction<String, InternalStream, InternalStream>() {
-            fgm.WorkerFunction fgm;
             WorkerStateHandler state;
 
             @Override
@@ -283,7 +273,7 @@ public class WorkerFunction_test {
                 state.setFi(5.0);
 
                 // test_case: At the end of a SubRound nodes are requested to send their current Phi(Xi)
-                fgm.sendZeta(state, collector);
+                sendZeta(state, collector);
 
                 // validate
                 assertFalse(state.getSubRoundPhase());
@@ -292,7 +282,6 @@ public class WorkerFunction_test {
 
             @Override
             public void open(Configuration parameters) {
-                fgm = new fgm.WorkerFunction<>(conf);
                 state = new WorkerStateHandler<>(getRuntimeContext(), conf);
             }
         }).addSink(new Testable.InternalStreamSink());

@@ -9,6 +9,8 @@ import org.apache.flink.streaming.api.functions.co.KeyedCoProcessFunction;
 import org.apache.flink.util.Collector;
 import state.WorkerStateHandler;
 
+import static fgm.WorkerFunction.*;
+
 public class WorkerProcessFunction<AccType, VectorType>  extends KeyedCoProcessFunction<String, InternalStream, InternalStream, InternalStream> {
 
     private final BaseConfig<AccType, VectorType, ?> cfg;
@@ -16,8 +18,6 @@ public class WorkerProcessFunction<AccType, VectorType>  extends KeyedCoProcessF
     public WorkerProcessFunction(BaseConfig<AccType, VectorType, ?> config){
         this.cfg = config;
     }
-
-    private WorkerFunction<AccType, VectorType> fgm;
     private WorkerStateHandler<VectorType> state;
 
     @Override
@@ -25,13 +25,13 @@ public class WorkerProcessFunction<AccType, VectorType>  extends KeyedCoProcessF
         //System.out.println("id:"+context.getCurrentKey()+", type:"+input.getClass().getName());
         if(cfg.slidingWindowEnabled()) {
             state.setLastTs(context.timestamp());
-            fgm.updateDrift(state, ((WindowSlide<AccType>) input).getVector());
+            updateDrift(state, ((WindowSlide<AccType>) input).getVector(), cfg);
         }
         else {
             state.setLastTs(((Input) input).getTimestamp());
-            fgm.updateDriftCashRegister(state, input);
+            updateDriftCashRegister(state, input, cfg);
         }
-        fgm.subRoundProcess(state, collector);
+        subRoundProcess(state, collector, cfg);
     }
 
     @Override
@@ -40,22 +40,22 @@ public class WorkerProcessFunction<AccType, VectorType>  extends KeyedCoProcessF
 
         switch (input.type){
             case "GlobalEstimate":
-                fgm.newRound(state, ((GlobalEstimate<VectorType>) input).getVector());
-                fgm.subRoundProcess(state, collector);
+                newRound(state, ((GlobalEstimate<VectorType>) input).getVector(), cfg);
+                subRoundProcess(state, collector, cfg);
                 break;
             case "Quantum":
-                fgm.newSubRound(state, ((Quantum) input).getPayload());
-                fgm.subRoundProcess(state, collector);
+                newSubRound(state, ((Quantum) input).getPayload());
+                subRoundProcess(state, collector, cfg);
                 break;
             case "RequestDrift":
-                fgm.sendDrift(state, collector);
+                sendDrift(state, collector);
                 break;
             case "RequestZeta":
-                fgm.sendZeta(state, collector);
+                sendZeta(state, collector);
                 break;
             case "Lambda":
-                fgm.newRebalancedRound(state, ((Lambda) input).getLambda());
-                fgm.subRoundProcess(state, collector);
+                newRebalancedRound(state, ((Lambda) input).getLambda(), cfg);
+                subRoundProcess(state, collector, cfg);
                 break;
         }
     }
@@ -63,7 +63,6 @@ public class WorkerProcessFunction<AccType, VectorType>  extends KeyedCoProcessF
     @Override
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
-        fgm = new WorkerFunction<>(cfg);
         state = new WorkerStateHandler<>(getRuntimeContext(), cfg);
     }
 }

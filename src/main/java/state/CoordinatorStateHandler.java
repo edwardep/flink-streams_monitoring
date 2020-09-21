@@ -23,6 +23,8 @@ public class CoordinatorStateHandler<VectorType>{
     private transient ValueState<Double> psi;
     private transient ValueState<Double> psiBeta;
     private transient ValueState<Integer> globalCounter;
+    private transient ValueState<Double> lambda;
+    private transient ValueState<Long> lastTs;
 
     private IntCounter roundsCounter = new IntCounter();
     private IntCounter subroundsCounter = new IntCounter();
@@ -44,6 +46,8 @@ public class CoordinatorStateHandler<VectorType>{
         aggregateState = createState("aggregateState", cfg.getVectorType());
         estimate = createState("estimate", cfg.getVectorType());
         safeZone = createState("safeZone", Types.GENERIC(SafeZone.class));
+        lambda = createState("lambda", Types.DOUBLE);
+        lastTs = createState("lastTas", Types.LONG);
 
         runtimeContext.addAccumulator("roundsCounter", this.roundsCounter);
         runtimeContext.addAccumulator("subroundsCounter", this.subroundsCounter);
@@ -92,6 +96,12 @@ public class CoordinatorStateHandler<VectorType>{
     public Integer getGlobalCounter() throws IOException {
         return globalCounter.value() != null ? globalCounter.value() : 0;
     }
+    public Double getLambda() throws IOException {
+        return lambda.value() != null ? lambda.value() : 1.0;
+    }
+    public Long getLastTs() throws IOException {
+        return lastTs.value() != null ? lastTs.value() : Long.MIN_VALUE;
+    }
 
     /* Setters */
     public void setAggregateState(VectorType value) throws IOException { aggregateState.update(value); }
@@ -102,5 +112,6 @@ public class CoordinatorStateHandler<VectorType>{
     public void setNodeCount(Integer value) throws IOException { nodeCount.update(value);}
     public void setSync(Boolean value) throws IOException { sync.update(value); }
     public void setPsiBeta(Double value) throws IOException { psiBeta.update(value);}
-
+    public void setLambda(Double value) throws IOException { lambda.update(value);}
+    public void setLastTs(Long value) throws IOException { lastTs.update(value);}
 }
