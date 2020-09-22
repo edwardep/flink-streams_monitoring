@@ -30,6 +30,7 @@ public class WorkerStateHandler<VectorType> {
     private transient ValueState<Double> lambda;
     private transient ValueState<Long> lastTs;
     private transient ValueState<Long> firstTs;
+    private transient ValueState<Long> currentSlideTimestamp;
 
     private BaseConfig<?, VectorType, ?> cfg;
     private RuntimeContext runtimeContext;
@@ -53,6 +54,7 @@ public class WorkerStateHandler<VectorType> {
         lastTs = createState("lastTs", Types.LONG);
         firstTs = createState("furstTs", Types.LONG);
         lambda = createState("lambda", Types.DOUBLE);
+        currentSlideTimestamp = createState("currentSlideTimestamp", Types.LONG);
     }
 
     private <V> ValueState<V> createState(String name, TypeInformation<V> type) {
@@ -83,6 +85,7 @@ public class WorkerStateHandler<VectorType> {
 
     public Long getLastTs() throws IOException { return  lastTs.value() != null ? lastTs.value() : 0L; }
     public Long getFirstTs() throws IOException { return  firstTs.value() != null ? firstTs.value() : 0L; }
+    public Long getCurrentSlideTimestamp() throws IOException { return  currentSlideTimestamp.value() != null ? currentSlideTimestamp.value() : 0L; }
     public Double getFi() throws IOException { return fi.value() != null ? fi.value() : 0d; }
     public Double getZeta() throws IOException { return zeta.value() != null ? zeta.value() : 0d; }
     public Double getQuantum() throws IOException { return quantum.value() != null ? quantum.value() : 0d; }
@@ -103,5 +106,5 @@ public class WorkerStateHandler<VectorType> {
     public void setLastTs(Long value) throws IOException { lastTs.update(value); }
     public void setFirstTs(Long value) throws IOException { firstTs.update(value); }
     public void setLambda(Double value) throws IOException { lambda.update(value); }
-
+    public void setCurrentSlideTimestamp(Long value) throws IOException { currentSlideTimestamp.update(value); }
 }

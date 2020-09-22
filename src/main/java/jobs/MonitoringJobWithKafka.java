@@ -5,10 +5,7 @@ import datatypes.InputRecord;
 import datatypes.InternalStream;
 import datatypes.internals.InitCoordinator;
 import datatypes.internals.Input;
-import operators.CoordinatorProcessFunction;
-import operators.IncAggregation;
-import operators.WindowFunction;
-import operators.WorkerProcessFunction;
+import operators.*;
 import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.utils.ParameterTool;
@@ -133,16 +130,19 @@ public class MonitoringJobWithKafka {
                         }
                     })
                     .keyBy(InternalStream::getStreamID)
-
-                    .timeWindow(
+                    .process(new CustomSlidingWindow(
                             Time.seconds(parameters.getInt("window", defWindowSize)),
-                            Time.seconds(parameters.getInt("slide", defSlideSize)))
-                    .aggregate(
-                            new IncAggregation<>(config),
-                            new WindowFunction<>(config),
-                            config.getAccType(),                        // AggregateFunction ACC type
-                            config.getAccType(),                        // AggregateFunction V type
-                            TypeInformation.of(InternalStream.class))   // WindowFunction R type
+                            Time.seconds(parameters.getInt("slide", defSlideSize))
+                    ))
+//                    .timeWindow(
+//                            Time.seconds(parameters.getInt("window", defWindowSize)),
+//                            Time.seconds(parameters.getInt("slide", defSlideSize)))
+//                    .aggregate(
+//                            new IncAggregation<>(config),
+//                            new WindowFunction<>(config),
+//                            config.getAccType(),                        // AggregateFunction ACC type
+//                            config.getAccType(),                        // AggregateFunction V type
+//                            TypeInformation.of(InternalStream.class))   // WindowFunction R type
                     /**
                      * The KeyedCoProcessFunction contains all of fgm's worker logic.
                      * Input1 -> Sliding Window output

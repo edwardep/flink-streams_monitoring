@@ -23,15 +23,23 @@ public class WorkerProcessFunction<AccType, VectorType>  extends KeyedCoProcessF
     @Override
     public void processElement1(InternalStream input, Context context, Collector<InternalStream> collector) throws Exception {
         //System.out.println("id:"+context.getCurrentKey()+", type:"+input.getClass().getName());
-        if(cfg.slidingWindowEnabled()) {
-            state.setLastTs(context.timestamp());
-            updateDrift(state, ((WindowSlide<AccType>) input).getVector(), cfg);
+//        if(cfg.slidingWindowEnabled()) {
+//            state.setLastTs(context.timestamp());
+//            updateDrift(state, ((WindowSlide<AccType>) input).getVector(), cfg);
+//        }
+//        else {
+
+        long currentEventTimestamp = ((Input)input).getTimestamp();
+        if(currentEventTimestamp - state.getCurrentSlideTimestamp() >= 5000) {
+            state.setCurrentSlideTimestamp(currentEventTimestamp);
+            state.setLastTs(currentEventTimestamp); //todo : maybe it can be merged with 'currentSlideTimestamp'
+            subRoundProcess(state, collector, cfg);
         }
-        else {
-            state.setLastTs(((Input) input).getTimestamp());
-            updateDriftCashRegister(state, input, cfg);
-        }
-        subRoundProcess(state, collector, cfg);
+
+        updateDriftCashRegister(state, input, cfg);
+
+            //}
+        //subRoundProcess(state, collector, cfg);
     }
 
     @Override

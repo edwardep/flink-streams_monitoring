@@ -1,20 +1,26 @@
 package test_utils;
 
+import configurations.AGMSConfig;
 import configurations.BaseConfig;
 import configurations.TestP1Config;
 import datatypes.InputRecord;
 import datatypes.InternalStream;
 import datatypes.Vector;
 import datatypes.internals.Input;
+import fgm.WorkerFunction;
+import operators.CustomSlidingWindow;
 import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.functions.AggregateFunction;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
 import org.apache.flink.streaming.api.functions.ProcessFunction;
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
@@ -23,12 +29,15 @@ import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 import org.junit.Test;
 
+import sketches.AGMSSketch;
 import sources.WorldCupMapSource;
 import sources.WorldCupSource;
+import state.WorkerStateHandler;
 
 import java.io.IOException;
 import java.util.HashMap;
 
+import static kafka.KafkaUtils.createConsumerInput;
 import static utils.DefJobParameters.defInputPath;
 
 
@@ -71,6 +80,52 @@ public class Validation {
         }
     }
 
+    @Test
+    public void windowedValidation() throws Exception {
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+
+        env.setParallelism(1);
+        env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
+        env.getConfig().setAutoWatermarkInterval(1);
+        ParameterTool parameters = ParameterTool.fromPropertiesFile("/home/edwardep/flink-streams_monitoring/src/main/java/properties/pico.properties");
+        AGMSConfig config = new AGMSConfig(1,0.1);
+        env
+                .addSource(createConsumerInput(parameters).setStartFromEarliest())
+                .setParallelism(1)
+                .flatMap(new WorldCupMapSource(config))
+                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InternalStream>() {
+                    @Override
+                    public long extractAscendingTimestamp(InternalStream inputRecord) {
+                        return ((Input)inputRecord).getTimestamp();
+                    }
+                })
+                .keyBy(InternalStream::getStreamID)
+                .process(new CustomSlidingWindow(Time.seconds(1600), Time.seconds(5)))
+                .keyBy(InternalStream::getStreamID)
+                .process(new KeyedProcessFunction<String, InternalStream, String>() {
+                    WorkerStateHandler<AGMSSketch> state;
+                    long currentSlideTimestamp = 0L;
+                    @Override
+                    public void processElement(InternalStream input, Context context, Collector<String> collector) throws Exception {
+                        long currentEventTimestamp = ((Input)input).getTimestamp();
+
+                        if(currentEventTimestamp - currentSlideTimestamp >= 5000) {
+                            currentSlideTimestamp = currentEventTimestamp;
+                            collector.collect(config.queryFunction(config.scaleVector(state.getDrift(), 1/10.0), ((Input) input).getTimestamp()));
+                        }
+                        WorkerFunction.updateDriftCashRegister(state, input, config);
+                    }
+                    @Override
+                    public void open(Configuration parameters) {
+                        state = new WorkerStateHandler<>(getRuntimeContext(), config);
+                    }
+                })
+                .writeAsText("/home/edwardep/flink-streams_monitoring/logs/validation_window_1600_10.txt", FileSystem.WriteMode.OVERWRITE);
+
+
+
+        env.execute();
+    }
     @Test
     public void centralized() throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
