@@ -73,7 +73,7 @@ public class MonitoringJobWithKafka {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(parameters.getInt("parallelism", defParallelism));
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
-
+        env.getConfig().setAutoWatermarkInterval(1);
 
         /**
          *  The FGM configuration class. (User-implemented functions)
@@ -156,7 +156,6 @@ public class MonitoringJobWithKafka {
         else {
 
             worker = streamFromFile
-                    .keyBy(InternalStream::getStreamID)
 
                     /**
                      * The KeyedCoProcessFunction contains all of fgm's worker logic.
