@@ -41,7 +41,7 @@ public class WorkerStateHandler<VectorType> {
 
         driftVector = createState("driftVector", cfg.getVectorType());
         estimate = createState("estimate", cfg.getVectorType());
-        safeZone = createState("safeZone", Types.GENERIC(SafeZone.class));
+        safeZone = createState("safeZone", Types.POJO(SafeZone.class));
 
         subRoundInit = createState("subRoundInit", Types.BOOLEAN);
         subRoundPhase = createState("subRoundPhase", Types.BOOLEAN);

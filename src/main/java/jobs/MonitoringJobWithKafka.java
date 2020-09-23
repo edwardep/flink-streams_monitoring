@@ -3,10 +3,13 @@ package jobs;
 import configurations.AGMSConfig;
 import datatypes.InputRecord;
 import datatypes.InternalStream;
+import datatypes.internals.Drift;
 import datatypes.internals.InitCoordinator;
 import datatypes.internals.Input;
+import fgm.SafeZone;
 import operators.*;
 import org.apache.flink.api.common.JobExecutionResult;
+import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.core.fs.FileSystem;
@@ -20,6 +23,7 @@ import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExt
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
+import sketches.AGMSSketch;
 import sources.WorldCupMapSource;
 import utils.Misc;
 
@@ -71,6 +75,7 @@ public class MonitoringJobWithKafka {
         env.setParallelism(parameters.getInt("parallelism", defParallelism));
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
         env.getConfig().setAutoWatermarkInterval(1);
+        //env.getConfig().disableGenericTypes(); //todo: Generics fall back to Kryo
 
         /**
          *  The FGM configuration class. (User-implemented functions)
@@ -209,6 +214,7 @@ public class MonitoringJobWithKafka {
 
 
         //System.out.println(env.getExecutionPlan());
+
 
         Misc.printExecutionMessage(parameters);
         JobExecutionResult executionResult = env.execute(parameters.get("jobName", defJobName));

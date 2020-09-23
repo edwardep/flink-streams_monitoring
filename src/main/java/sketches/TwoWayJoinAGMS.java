@@ -9,7 +9,7 @@ import static sketches.SketchMath.*;
 
 public class TwoWayJoinAGMS {
 
-    private class Bound {
+    private static class Bound {
         private int depth;
         private int width;
         private double T;                           // the threshold

@@ -1,6 +1,7 @@
 package sketches;
 
 
+import java.io.Serializable;
 import java.util.Arrays;
 
 import static sketches.SketchMath.multiply;
@@ -32,7 +33,7 @@ import static sketches.SketchMath.multiply;
  Its drawback is that it is not eikonal.
 
  */
-public class SafezoneQuorum {
+public class SafezoneQuorum implements Serializable {
 
     private int n;              // the number of inputs
     private int k;              // the lower bound on true inputs
@@ -153,5 +154,29 @@ public class SafezoneQuorum {
 
     public double[] getzCached() {
         return zCached;
+    }
+
+    public void setN(int n) {
+        this.n = n;
+    }
+
+    public void setK(int k) {
+        this.k = k;
+    }
+
+    public void setL(int[] l) {
+        L = l;
+    }
+
+    public void setZetaE(double[] zetaE) {
+        this.zetaE = zetaE;
+    }
+
+    public void setzCached(double[] zCached) {
+        this.zCached = zCached;
+    }
+
+    public boolean isEikonal() {
+        return eikonal;
     }
 }

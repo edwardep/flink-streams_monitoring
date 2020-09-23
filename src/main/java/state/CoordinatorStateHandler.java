@@ -45,7 +45,7 @@ public class CoordinatorStateHandler<VectorType>{
 
         aggregateState = createState("aggregateState", cfg.getVectorType());
         estimate = createState("estimate", cfg.getVectorType());
-        safeZone = createState("safeZone", Types.GENERIC(SafeZone.class));
+        safeZone = createState("safeZone", Types.POJO(SafeZone.class));
         lambda = createState("lambda", Types.DOUBLE);
         lastTs = createState("lastTas", Types.LONG);
 

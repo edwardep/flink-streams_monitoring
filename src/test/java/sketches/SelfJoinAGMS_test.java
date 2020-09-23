@@ -1,14 +1,14 @@
 package sketches;
 
 import org.junit.Test;
-import sketches.SelfJoinAGMS.SelfJoin_lowerBound;
-import sketches.SelfJoinAGMS.SelfJoin_upperBound;
 
 import static java.lang.Math.abs;
 import static junit.framework.TestCase.assertTrue;
 import static test_utils.Generators.uniform_random_vector;
 import static sketches.SketchMath.add;
 import static sketches.SketchMath.median;
+import static sketches.SelfJoinAGMS.SelfJoinLowerBound;
+import static sketches.SelfJoinAGMS.SelfJoinUpperBound;
 
 public class SelfJoinAGMS_test {
 
@@ -29,7 +29,7 @@ public class SelfJoinAGMS_test {
 
             double Emed = median(E.values());
 
-            SelfJoin_upperBound sz = new SelfJoin_upperBound(E.values(), 1.1 * Emed, true);
+            SelfJoinUpperBound sz = new SelfJoinUpperBound(E.values(), 1.1 * Emed, true);
 
             assertTrue(0.0 < sz.median(E.values()));
 
@@ -76,8 +76,8 @@ public class SelfJoinAGMS_test {
 
             double Emed = median(E.values());
 
-            SelfJoin_lowerBound sz;
-            sz = new SelfJoin_lowerBound(E.values(), 0.9 * Emed, true);
+            SelfJoinAGMS.SelfJoinLowerBound sz;
+            sz = new SelfJoinLowerBound(E.values(), 0.9 * Emed, true);
 
 
             assertTrue(0.0 < sz.median(E.values()));

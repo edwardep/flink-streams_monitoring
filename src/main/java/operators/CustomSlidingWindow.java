@@ -55,7 +55,7 @@ public class CustomSlidingWindow extends KeyedProcessFunction<String, InternalSt
     public void open(Configuration parameters) throws Exception {
         state = getRuntimeContext().getMapState(new MapStateDescriptor<>(
                 "window-state",
-                Types.LONG, Types.LIST(Types.GENERIC(InternalStream.class))));
+                Types.LONG, Types.LIST(Types.POJO(InternalStream.class))));
 
         currentSlideTimestamp = getRuntimeContext().getState(new ValueStateDescriptor<>(
                 "currentSlide",
