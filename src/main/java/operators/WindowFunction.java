@@ -10,13 +10,14 @@ import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 
+@Deprecated
 public class WindowFunction<Acc> extends ProcessWindowFunction<Acc, InternalStream, String, TimeWindow> {
 
-    private BaseConfig<Acc,?,?> cfg;
+    private BaseConfig<?> cfg;
 
     private transient ValueState<Acc> state;
 
-    public WindowFunction(BaseConfig<Acc,?,?> cfg) {
+    public WindowFunction(BaseConfig<?> cfg) {
         this.cfg = cfg;
     }
     @Override
@@ -24,12 +25,12 @@ public class WindowFunction<Acc> extends ProcessWindowFunction<Acc, InternalStre
         if(iterable.iterator().hasNext()){
             Acc accumulator = iterable.iterator().next();
             Acc window_drift;
-            if(state.value() != null)
-                window_drift = cfg.subtractAccumulators(accumulator, state.value());
-            else
-                window_drift = accumulator;
+//            if(state.value() != null)
+//                window_drift = cfg.subtractAccumulators(accumulator, state.value());
+//            else
+//                window_drift = accumulator;
 
-            out.collect(new WindowSlide<>(key, window_drift));
+            //out.collect(new WindowSlide<>(key, window_drift));
             state.update(accumulator);
         }
     }
@@ -37,6 +38,6 @@ public class WindowFunction<Acc> extends ProcessWindowFunction<Acc, InternalStre
     @Override
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
-        state = getRuntimeContext().getState(new ValueStateDescriptor<>("window", cfg.getAccType()));
+        //state = getRuntimeContext().getState(new ValueStateDescriptor<>("window", cfg.getAccType()));
     }
 }

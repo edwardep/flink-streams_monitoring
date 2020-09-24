@@ -1,5 +1,6 @@
 package utils;
 
+import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.java.utils.ParameterTool;
 
 import static utils.DefJobParameters.*;
@@ -22,5 +23,28 @@ public class Misc {
         msg += "\t--workers : "+parameters.getInt("workers", defWorkers)+"\n";
         msg += "\t--epsilon : "+parameters.getDouble("epsilon", defEpsilon)+"\n";
         System.out.println(msg);
+    }
+
+    public static void printExecutionResults(ParameterTool parameters, JobExecutionResult result) {
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append(parameters.get("jobName", defJobName)).append(",");
+        stringBuilder.append(parameters.getInt("parallelism", defParallelism)).append(",");
+        stringBuilder.append(parameters.getInt("workers", defWorkers)).append(",");
+        stringBuilder.append(parameters.getDouble("epsilon", defEpsilon)).append(",");
+        stringBuilder.append(parameters.getInt("window", defWindowSize)).append(",");
+        stringBuilder.append(parameters.getInt("slide", defSlideSize)).append(",");
+        stringBuilder.append(parameters.getBoolean("sliding-window")).append(",");
+        stringBuilder.append(parameters.getBoolean("rebalance")).append(",");
+        stringBuilder.append(parameters.get("output", defOutputPath)).append(",");
+
+        stringBuilder.append(result.getNetRuntime()).append(",");
+        stringBuilder.append(result.getAccumulatorResult("roundsCounter").toString()).append(",");
+        stringBuilder.append(result.getAccumulatorResult("subroundsCounter").toString()).append(",");
+        stringBuilder.append(result.getAccumulatorResult("rebalancedRoundsCounter").toString()).append(",");
+
+
+        System.out.println("======================================================================");
+        System.out.println(stringBuilder);
+        System.out.println("======================================================================");
     }
 }

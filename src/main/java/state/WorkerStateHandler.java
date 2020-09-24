@@ -32,10 +32,10 @@ public class WorkerStateHandler<VectorType> {
     private transient ValueState<Long> firstTs;
     private transient ValueState<Long> currentSlideTimestamp;
 
-    private BaseConfig<?, VectorType, ?> cfg;
+    private BaseConfig<VectorType> cfg;
     private RuntimeContext runtimeContext;
 
-    public WorkerStateHandler(RuntimeContext runtimeContext, BaseConfig<?, VectorType, ?> cfg) {
+    public WorkerStateHandler(RuntimeContext runtimeContext, BaseConfig<VectorType> cfg) {
         this.cfg = cfg;
         this.runtimeContext = runtimeContext;
 

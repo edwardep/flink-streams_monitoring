@@ -9,9 +9,9 @@ import org.apache.flink.util.Collector;
 
 public class WorldCupMapSource implements FlatMapFunction<String, InternalStream> {
 
-    private BaseConfig<?,?,?> cfg;
+    private final BaseConfig<?> cfg;
 
-    public WorldCupMapSource(BaseConfig<?,?,?> cfg) {
+    public WorldCupMapSource(BaseConfig<?> cfg) {
         this.cfg = cfg;
     }
 

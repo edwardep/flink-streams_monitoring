@@ -11,11 +11,11 @@ import state.WorkerStateHandler;
 
 import static fgm.WorkerFunction.*;
 
-public class WorkerProcessFunction<AccType, VectorType>  extends KeyedCoProcessFunction<String, InternalStream, InternalStream, InternalStream> {
+public class WorkerProcessFunction<VectorType>  extends KeyedCoProcessFunction<String, InternalStream, InternalStream, InternalStream> {
 
-    private final BaseConfig<AccType, VectorType, ?> cfg;
+    private final BaseConfig<VectorType> cfg;
 
-    public WorkerProcessFunction(BaseConfig<AccType, VectorType, ?> config){
+    public WorkerProcessFunction(BaseConfig<VectorType> config){
         this.cfg = config;
     }
     private WorkerStateHandler<VectorType> state;
@@ -23,11 +23,6 @@ public class WorkerProcessFunction<AccType, VectorType>  extends KeyedCoProcessF
     @Override
     public void processElement1(InternalStream input, Context context, Collector<InternalStream> collector) throws Exception {
         //System.out.println("id:"+context.getCurrentKey()+", type:"+input.getClass().getName());
-//        if(cfg.slidingWindowEnabled()) {
-//            state.setLastTs(context.timestamp());
-//            updateDrift(state, ((WindowSlide<AccType>) input).getVector(), cfg);
-//        }
-//        else {
 
         long currentEventTimestamp = ((Input)input).getTimestamp();
         if(currentEventTimestamp - state.getCurrentSlideTimestamp() >= 5000) {
@@ -36,7 +31,7 @@ public class WorkerProcessFunction<AccType, VectorType>  extends KeyedCoProcessF
             subRoundProcess(state, collector, cfg);
         }
 
-        updateDriftCashRegister(state, input, cfg);
+        updateDrift(state, input, cfg);
 
             //}
         //subRoundProcess(state, collector, cfg);

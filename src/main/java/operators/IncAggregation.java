@@ -3,19 +3,20 @@ package operators;
 import configurations.BaseConfig;
 import org.apache.flink.api.common.functions.AggregateFunction;
 
+@Deprecated
 public class IncAggregation<In, Acc> implements AggregateFunction<In, Acc, Acc> {
 
-    private final BaseConfig<Acc, ?, In> cfg;
-    public IncAggregation(BaseConfig<Acc, ?, In> cfg) { this.cfg = cfg; }
+    private final BaseConfig<?> cfg;
+    public IncAggregation(BaseConfig<?> cfg) { this.cfg = cfg; }
 
     @Override
     public Acc createAccumulator() {
-        return cfg.newAccInstance();
+        return null;//cfg.newAccInstance();
     }
 
     @Override
     public Acc add(In in, Acc acc) {
-        return cfg.aggregateRecord(in, acc);
+        return null;//cfg.aggregateRecord(in, acc);
     }
 
     @Override

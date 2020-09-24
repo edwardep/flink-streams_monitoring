@@ -2,9 +2,7 @@ package fgm;
 
 import configurations.BaseConfig;
 
-import datatypes.InputRecord;
 import datatypes.InternalStream;
-import datatypes.Vector;
 import datatypes.internals.Drift;
 import datatypes.internals.Increment;
 import datatypes.internals.Zeta;
@@ -25,16 +23,10 @@ public class WorkerFunction implements Serializable {
     /**
      * The second argument (input) might change from RecordType to VectorType when SlidingWindow gets implemented.
      */
-    public static <AccType, VectorType> void updateDrift(WorkerStateHandler<VectorType> state,
-                                                         AccType input,
-                                                         BaseConfig<AccType, VectorType, ?> cfg) throws Exception {
+    public static <VectorType> void updateDrift(WorkerStateHandler<VectorType> state,
+                                                InternalStream input,
+                                                BaseConfig<VectorType> cfg) throws Exception {
         state.setDrift(cfg.updateVector(input, state.getDrift()));
-    }
-
-    public static <VectorType> void updateDriftCashRegister(WorkerStateHandler<VectorType> state,
-                                                            InternalStream input,
-                                                            BaseConfig<?, VectorType, ?> cfg) throws IOException {
-        state.setDrift(cfg.updateVectorCashRegister(input, state.getDrift()));
     }
 
     /**
@@ -46,7 +38,7 @@ public class WorkerFunction implements Serializable {
      */
     public static <VectorType> void newRound(WorkerStateHandler<VectorType> state,
                                              VectorType vector,
-                                             BaseConfig<?, VectorType, ?> cfg) throws Exception {
+                                             BaseConfig<VectorType> cfg) throws Exception {
 
         state.setEstimate(vector);
         SafeZone sz = cfg.initializeSafeZone(vector);
@@ -134,7 +126,7 @@ public class WorkerFunction implements Serializable {
      */
     public static <VectorType> void subRoundProcess(WorkerStateHandler<VectorType> state,
                                                     Collector<InternalStream> out,
-                                                    BaseConfig<?, VectorType,?> cfg) throws Exception {
+                                                    BaseConfig<VectorType> cfg) throws Exception {
 
         /*  While waiting for new Round or new SubRound, do nothing */
         if (!state.getSubRoundPhase())
@@ -172,7 +164,7 @@ public class WorkerFunction implements Serializable {
 
     public static <VectorType> void newRebalancedRound(WorkerStateHandler<VectorType> state,
                                                        Double payload,
-                                                       BaseConfig<?, VectorType,?> cfg) throws Exception {
+                                                       BaseConfig<VectorType> cfg) throws Exception {
 
         // save lambda
         state.setLambda(payload);

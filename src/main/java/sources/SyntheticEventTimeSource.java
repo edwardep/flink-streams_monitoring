@@ -1,13 +1,12 @@
 package sources;
 
-import datatypes.InputRecord;
+import datatypes.internals.Input;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
-import org.apache.flink.streaming.api.watermark.Watermark;
 
 import java.util.Random;
 
-public class SyntheticEventTimeSource implements SourceFunction<InputRecord> {
+public class SyntheticEventTimeSource implements SourceFunction<Input> {
 
     private boolean isRunning = true;
     private String streamID = "0";
@@ -35,14 +34,14 @@ public class SyntheticEventTimeSource implements SourceFunction<InputRecord> {
     }
 
     @Override
-    public void run(SourceContext<InputRecord> sourceContext) throws Exception {
+    public void run(SourceContext<Input> sourceContext) throws Exception {
         long startTime = System.currentTimeMillis();
         while(isRunning) {
             // Stop after..
             if(monotonicity > records) cancel();
 
             long timestampMillis = startTime + ((1000 / recordsPerSec) * monotonicity);
-            InputRecord event = new InputRecord(
+            Input event = new Input(
                     String.valueOf(rand2.nextInt(groupSize)), //streamID
                     timestampMillis,
                     Tuple2.of(rand.nextInt(keyRandomness),1),1d);

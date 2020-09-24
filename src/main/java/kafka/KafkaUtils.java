@@ -77,7 +77,7 @@ public class KafkaUtils {
      * @param cfg   The BaseConfig for accessing user-defines types
      * @return A Kafka Consumer which can be passed to the .addSource() operator
      */
-    public static FlinkKafkaConsumer<InternalStream> createConsumerInternal(ParameterTool parameters, BaseConfig<?, ?, ?> cfg) {
+    public static FlinkKafkaConsumer<InternalStream> createConsumerInternal(ParameterTool parameters, BaseConfig<?> cfg) {
         Random rand = new Random();
         String topic = parameters.get("feedback-topic", defFeedbackTopic);
         return new FlinkKafkaConsumer<>(

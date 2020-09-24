@@ -7,38 +7,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public class Vector implements Serializable {
-    private final Map<Tuple2<Integer, Integer>, Double> vector;
-
-    public Vector() {
-        this.vector = new HashMap<>();
+public class Vector extends HashMap<Tuple2<Integer,Integer>, Double> {
+    public Vector(){
+        super();
     }
-    public Vector(Map<Tuple2<Integer,Integer>, Double> vec) {
-        this.vector = new HashMap<>(vec);
+    public Vector(Vector vector) {
+        super(vector);
     }
-
-    public Map<Tuple2<Integer, Integer>, Double> map() {
-        return vector;
-    }
-
-    public Double getValue(Tuple2<Integer, Integer> key) {
-        return vector.getOrDefault(key, 0d);
-    }
-
-    public String toString() {
-        return vector.toString();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Vector vector1 = (Vector) o;
-        return Objects.deepEquals(vector, vector1.vector);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(vector);
+    public Vector(HashMap<Tuple2<Integer,Integer>, Double> map){
+        super(map);
     }
 }

@@ -3,7 +3,6 @@ package test_utils;
 import configurations.AGMSConfig;
 import configurations.BaseConfig;
 import configurations.TestP1Config;
-import datatypes.InputRecord;
 import datatypes.InternalStream;
 import datatypes.Vector;
 import datatypes.internals.Input;
@@ -17,7 +16,6 @@ import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.streaming.api.TimeCharacteristic;
-import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
@@ -35,10 +33,8 @@ import sources.WorldCupSource;
 import state.WorkerStateHandler;
 
 import java.io.IOException;
-import java.util.HashMap;
 
 import static kafka.KafkaUtils.createConsumerInput;
-import static utils.DefJobParameters.defInputPath;
 
 
 public class Validation {
@@ -71,7 +67,7 @@ public class Validation {
         public void processElement(InternalStream internalStream, Context context, Collector<String> collector) throws Exception {
             Tuple2<Integer, Integer> key = ((Input)internalStream).getKey();
             Double val = ((Input)internalStream).getVal();
-            state.map().put(key, state.getValue(key) + val);
+            state.put(key, state.getOrDefault(key, 0d) + val);
 
             if(count % 1000 == 0)
                 collector.collect(cfg.queryFunction(cfg.scaleVector(state, 1.0/10), ((Input)internalStream).getTimestamp()));
@@ -113,7 +109,7 @@ public class Validation {
                             currentSlideTimestamp = currentEventTimestamp;
                             collector.collect(config.queryFunction(config.scaleVector(state.getDrift(), 1/10.0), ((Input) input).getTimestamp()));
                         }
-                        WorkerFunction.updateDriftCashRegister(state, input, config);
+                        WorkerFunction.updateDrift(state, input, config);
                     }
                     @Override
                     public void open(Configuration parameters) {
@@ -126,45 +122,45 @@ public class Validation {
 
         env.execute();
     }
-    @Test
-    public void centralized() throws Exception {
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-
-        env.setParallelism(1);
-        env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
-
-        String defInputPath = "D:/Documents/WorldCup_tools/ita_public_tools/output/wc_day46_1.txt";
-
-        int slide = 5;
-        int window = 1000;
-
-
-        KeyedStream<InputRecord, String> keyedStream = env
-                .addSource(new WorldCupSource(defInputPath, cfg))
-                .map(x -> x)
-                .returns(TypeInformation.of(InputRecord.class))
-                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InputRecord>() {
-                    @Override
-                    public long extractAscendingTimestamp(InputRecord inputRecord) {
-                        return inputRecord.getTimestamp();
-                    }
-                })
-                .keyBy(k->"0");
-
-        keyedStream
-                .timeWindow(Time.seconds(window), Time.seconds(slide))
-                .aggregate(new IncAggregationDef(cfg), new WindowFunctionDef(cfg))
-                .writeAsText("C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/validation_1000.txt", FileSystem.WriteMode.OVERWRITE);
-
-
-
-        env.execute();
-    }
+//    @Test
+//    public void centralized() throws Exception {
+//        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+//
+//        env.setParallelism(1);
+//        env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
+//
+//        String defInputPath = "D:/Documents/WorldCup_tools/ita_public_tools/output/wc_day46_1.txt";
+//
+//        int slide = 5;
+//        int window = 1000;
+//
+//
+//        KeyedStream<InputRecord, String> keyedStream = env
+//                .addSource(new WorldCupSource(defInputPath, cfg))
+//                .map(x -> x)
+//                .returns(TypeInformation.of(InputRecord.class))
+//                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InputRecord>() {
+//                    @Override
+//                    public long extractAscendingTimestamp(InputRecord inputRecord) {
+//                        return inputRecord.getTimestamp();
+//                    }
+//                })
+//                .keyBy(k->"0");
+//
+//        keyedStream
+//                .timeWindow(Time.seconds(window), Time.seconds(slide))
+//                .aggregate(new IncAggregationDef(cfg), new WindowFunctionDef(cfg))
+//                .writeAsText("C:/Users/eduar/IdeaProjects/flink-streams_monitoring/logs/validation_1000.txt", FileSystem.WriteMode.OVERWRITE);
+//
+//
+//
+//        env.execute();
+//    }
     public static class WindowFunctionDef extends ProcessWindowFunction<Vector, String, String, TimeWindow> {
 
-        private BaseConfig<Vector,Vector,?> cfg;
+        private BaseConfig<Vector> cfg;
 
-        WindowFunctionDef(BaseConfig<Vector, Vector, ?> cfg) {
+        WindowFunctionDef(BaseConfig<Vector> cfg) {
             this.cfg = cfg;
         }
 
@@ -177,30 +173,5 @@ public class Validation {
         }
     }
 
-
-    public static class IncAggregationDef implements AggregateFunction<InputRecord, Vector, Vector> {
-        private BaseConfig<Vector,?,InputRecord> cfg;
-
-        IncAggregationDef(BaseConfig<Vector, ?, InputRecord> cfg) {
-            this.cfg = cfg;
-        }
-
-        @Override
-        public Vector createAccumulator() {
-            return new Vector();
-        }
-        @Override
-        public Vector add(InputRecord input, Vector accumulator) {
-            return cfg.aggregateRecord(input, accumulator);
-        }
-        @Override
-        public Vector getResult(Vector accumulator) {
-            return accumulator;
-        }
-        @Override
-        public Vector merge(Vector acc1, Vector acc2) {
-            return null;
-        }
-    }
 
 }

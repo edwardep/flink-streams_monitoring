@@ -20,10 +20,13 @@ import org.junit.Before;
 import org.junit.Test;
 import state.WorkerStateHandler;
 import test_utils.Testable;
+
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import static fgm.WorkerFunction.*;
 import static junit.framework.TestCase.*;
+import static test_utils.Generators.generateInputSequence;
 import static test_utils.Generators.generateSequence;
 
 public class WorkerFunction_test {
@@ -31,7 +34,7 @@ public class WorkerFunction_test {
     private KeyedStream<InternalStream, String> source;
 
     // instantiate fgm configuration
-    private static TestP1Config conf = new TestP1Config();
+    private static final TestP1Config conf = new TestP1Config();
 
     @Before
     public void setup() {
@@ -63,29 +66,31 @@ public class WorkerFunction_test {
     @Test
     public void updateDrift_test() throws Exception {
         source.process(new KeyedProcessFunction<String, InternalStream, InternalStream>() {
-            WorkerStateHandler state;
+            WorkerStateHandler<Vector> state;
 
             @Override
             public void processElement(InternalStream internalStream, Context context, Collector<InternalStream> collector) throws Exception {
 
                 // mock input
-                Vector batchUpdate = new Vector(generateSequence(5));
+                ArrayList<InternalStream> events = generateInputSequence(5);
 
                 // test_case: previous drift is empty (checking ValueState null return)
-                updateDrift(state, batchUpdate, conf);
+                for(InternalStream event : events)
+                    updateDrift(state, event, conf);
 
                 for(int i = 0; i < 5; i++)
-                    assert ((Vector) state.getDrift()).getValue(Tuple2.of(i,i)) == i;
+                    assert state.getDrift().get(Tuple2.of(i,i)) == i;
 
                 // test_case : previous drift is not empty
                 Vector prevDrift =  new Vector(generateSequence(5));
                 state.setDrift(prevDrift);
 
                 // retry
-                updateDrift(state, batchUpdate, conf);
+                for(InternalStream event : events)
+                    updateDrift(state, event, conf);
 
                 for(int i = 0; i < 5; i++)
-                    assert ((Vector) state.getDrift()).getValue(Tuple2.of(i,i)) == i*2;
+                    assert state.getDrift().get(Tuple2.of(i,i)) == i*2;
             }
 
             @Override
@@ -104,7 +109,7 @@ public class WorkerFunction_test {
     @Test
     public void newSubRound_test() throws Exception {
         source.process(new KeyedProcessFunction<String, InternalStream, InternalStream>() {
-            WorkerStateHandler state;
+            WorkerStateHandler<Vector> state;
 
             @Override
             public void processElement(InternalStream internalStream, Context context, Collector<InternalStream> collector) throws Exception {
@@ -137,7 +142,7 @@ public class WorkerFunction_test {
     @Test
     public void newRound_test() throws Exception {
         source.process(new KeyedProcessFunction<String, InternalStream, InternalStream>() {
-            WorkerStateHandler state;
+            WorkerStateHandler<Vector> state;
 
             @Override
             public void processElement(InternalStream internalStream, Context context, Collector<InternalStream> collector) throws Exception {
@@ -172,7 +177,7 @@ public class WorkerFunction_test {
     @Test
     public void subRoundProcess_test() throws Exception {
         source.process(new KeyedProcessFunction<String, InternalStream, InternalStream>() {
-            WorkerStateHandler state;
+            WorkerStateHandler<Vector> state;
 
             @Override
             public void processElement(InternalStream internalStream, Context context, Collector<InternalStream> collector) throws Exception {
@@ -231,7 +236,7 @@ public class WorkerFunction_test {
         HashMap<Tuple2<Integer, Integer>, Double> mock = generateSequence(10);
 
         source.process(new KeyedProcessFunction<String, InternalStream, InternalStream>() {
-            WorkerStateHandler state;
+            WorkerStateHandler<Vector> state;
 
             @Override
             public void processElement(InternalStream internalStream, Context context, Collector<InternalStream> collector) throws Exception {
@@ -265,7 +270,7 @@ public class WorkerFunction_test {
     @Test
     public void sendZeta_test() throws Exception {
         source.process(new KeyedProcessFunction<String, InternalStream, InternalStream>() {
-            WorkerStateHandler state;
+            WorkerStateHandler<Vector> state;
 
             @Override
             public void processElement(InternalStream internalStream, Context context, Collector<InternalStream> collector) throws Exception {

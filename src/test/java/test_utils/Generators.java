@@ -1,12 +1,22 @@
 package test_utils;
 
+import datatypes.InternalStream;
+import datatypes.internals.Input;
 import org.apache.flink.api.java.tuple.Tuple2;
 import sketches.AGMSSketch;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
 
 public class Generators {
+
+    public static ArrayList<InternalStream> generateInputSequence(int range) {
+        ArrayList<InternalStream> list = new ArrayList<>(range);
+        for(int i = 0; i < range; i++)
+            list.add(new Input("0",0L, Tuple2.of(i,i), i*1.0));
+        return list;
+    }
 
     public static HashMap<Tuple2<Integer, Integer>, Double> generateSequence(int range) {
         HashMap<Tuple2<Integer, Integer>, Double> map = new HashMap<>();

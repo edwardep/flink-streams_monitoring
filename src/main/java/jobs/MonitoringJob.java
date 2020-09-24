@@ -1,7 +1,6 @@
 package jobs;
 
 import configurations.AGMSConfig;
-import datatypes.InputRecord;
 import datatypes.InternalStream;
 import datatypes.internals.InitCoordinator;
 import operators.*;
@@ -14,18 +13,10 @@ import org.apache.flink.streaming.api.datastream.IterativeStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
-import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
-import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.util.OutputTag;
 import sources.WorldCupMapSource;
-import sources.WorldCupSource;
 import utils.Misc;
 
-import java.util.Properties;
-import java.util.Random;
-
-import static kafka.KafkaUtils.createConsumerInternal;
-import static kafka.KafkaUtils.createProducerInternal;
 import static utils.DefJobParameters.*;
 
 

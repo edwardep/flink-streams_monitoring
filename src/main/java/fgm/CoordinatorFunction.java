@@ -28,7 +28,7 @@ public class CoordinatorFunction {
                                                 Drift<VectorType> input,
                                                 CoProcessFunction.Context ctx,
                                                 Collector<InternalStream> collector,
-                                                BaseConfig<?, VectorType, ?> cfg) throws Exception {
+                                                BaseConfig<VectorType> cfg) throws Exception {
 
         if(state.getNodeCount() < cfg.workers())
         {
@@ -70,7 +70,7 @@ public class CoordinatorFunction {
     private static <VectorType> void newRound(CoordinatorStateHandler<VectorType> state,
                                               CoProcessFunction.Context ctx,
                                               Collector<InternalStream> collector,
-                                              BaseConfig<?, VectorType, ?> cfg) throws Exception {
+                                              BaseConfig<VectorType> cfg) throws Exception {
 
         /* Update Global estimate */
 
@@ -114,7 +114,7 @@ public class CoordinatorFunction {
                                                CoProcessFunction.Context ctx,
                                                Double payload,
                                                Collector<InternalStream> collector,
-                                               BaseConfig<?, VectorType,?> cfg) throws Exception {
+                                               BaseConfig<VectorType> cfg) throws Exception {
 
         /*  Aggregate the incoming Phi(Xi) values to Psi */
         if(state.getNodeCount() < cfg.workers())
@@ -170,7 +170,7 @@ public class CoordinatorFunction {
     public static <VectorType> void handleIncrement(CoordinatorStateHandler<VectorType> state,
                                                     Integer payload,
                                                     Collector<InternalStream> collector,
-                                                    BaseConfig<?, VectorType,?> cfg) throws IOException {
+                                                    BaseConfig<VectorType> cfg) throws IOException {
 
         /*  Do not proceed until a new SubRound begins */
         if(state.getSync())
@@ -202,34 +202,34 @@ public class CoordinatorFunction {
      */
     private static <VectorType> void broadcast_Estimate(VectorType vector,
                                                         Collector<InternalStream> collector,
-                                                        BaseConfig<?, VectorType,?> cfg) {
+                                                        BaseConfig<VectorType> cfg) {
         for (int key = 0; key < cfg.workers(); key++)
             collector.collect(new GlobalEstimate<>(String.valueOf(key), vector));
     }
-    public static void broadcast_RequestDrift(Collector<InternalStream> collector, BaseConfig<?,?,?> cfg) {
+    public static void broadcast_RequestDrift(Collector<InternalStream> collector, BaseConfig<?> cfg) {
         for (int key = 0; key < cfg.workers(); key++)
             collector.collect(new RequestDrift(String.valueOf(key)));
     }
-    private static void broadcast_RequestZeta(Collector<InternalStream> collector, BaseConfig<?,?,?> cfg) {
+    private static void broadcast_RequestZeta(Collector<InternalStream> collector, BaseConfig<?> cfg) {
         for (int key = 0; key < cfg.workers(); key++)
             collector.collect(new RequestZeta(String.valueOf(key)));
     }
-    private static void broadcast_Quantum(Double quantum, Collector<InternalStream> collector, BaseConfig<?,?,?> cfg) {
+    private static void broadcast_Quantum(Double quantum, Collector<InternalStream> collector, BaseConfig<?> cfg) {
         for (int key = 0; key < cfg.workers(); key++)
             collector.collect(new Quantum(String.valueOf(key), quantum));
     }
-    private static void broadcast_Lambda(Double lambda, Collector<InternalStream> collector, BaseConfig<?,?,?> cfg) {
+    private static void broadcast_Lambda(Double lambda, Collector<InternalStream> collector, BaseConfig<?> cfg) {
         for (int key = 0; key < cfg.workers(); key++)
             collector.collect(new Lambda(String.valueOf(key), lambda));
     }
-    public static void broadcast_SigInt(Collector<InternalStream> collector, BaseConfig<?,?,?> cfg) {
+    public static void broadcast_SigInt(Collector<InternalStream> collector, BaseConfig<?> cfg) {
         for (int key = 0; key < cfg.workers(); key++)
             collector.collect(new SigInt(String.valueOf(key)));
     }
 
     // Psi_beta = (1 - lambda) * k * phi(BalanceVector / ((1 - lambda) * k))
     private static <VectorType> void updatePsiBeta(CoordinatorStateHandler<VectorType> state,
-                                                   BaseConfig<?,VectorType,?> cfg) throws Exception {
+                                                   BaseConfig<VectorType> cfg) throws Exception {
         state.setPsiBeta(
                 (1-state.getLambda())*cfg.workers()*cfg.safeFunction(
                         cfg.scaleVector(state.getAggregateState(), 1/((1-state.getLambda())*cfg.workers())),

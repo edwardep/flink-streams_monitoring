@@ -31,9 +31,9 @@ public class CoordinatorStateHandler<VectorType>{
     private IntCounter rebalancedRoundsCounter = new IntCounter();
 
     private RuntimeContext runtimeContext;
-    private BaseConfig<?, VectorType, ?> cfg;
+    private BaseConfig<VectorType> cfg;
 
-    public CoordinatorStateHandler(RuntimeContext runtimeContext, BaseConfig<?, VectorType, ?> cfg) {
+    public CoordinatorStateHandler(RuntimeContext runtimeContext, BaseConfig<VectorType> cfg) {
         this.cfg = cfg;
         this.runtimeContext = runtimeContext;
 

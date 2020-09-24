@@ -1,7 +1,7 @@
 package sources;
 
 import configurations.BaseConfig;
-import datatypes.InputRecord;
+import datatypes.internals.Input;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 
@@ -9,22 +9,22 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 
-public class WorldCupSource implements SourceFunction<InputRecord> {
+public class WorldCupSource implements SourceFunction<Input> {
     private String input_path;
-    private BaseConfig<?,?,?> cfg;
+    private BaseConfig<?> cfg;
 
     private boolean isRunning = true;
 
     private FileReader file;
     private BufferedReader reader;
 
-    public WorldCupSource(String input_path, BaseConfig<?,?,?> cfg) {
+    public WorldCupSource(String input_path, BaseConfig<?> cfg) {
         this.input_path = input_path;
         this.cfg = cfg;
     }
 
     @Override
-    public void run(SourceContext<InputRecord> sourceContext) throws Exception {
+    public void run(SourceContext<Input> sourceContext) throws Exception {
         file = new FileReader(input_path);
         reader = new BufferedReader(file);
 
@@ -44,7 +44,7 @@ public class WorldCupSource implements SourceFunction<InputRecord> {
                  *      timestamp = this is used by the timestamp extractor
                  *      Tuple2.of( Tuple2.of(ClientID, request_type) ,  1.0 )   -> (key, val)
                  */
-                InputRecord event = new InputRecord(
+                Input event = new Input(
                         hashStreamID(tokens[WCStruct.server.ordinal()]),
                         timestampMillis,
                         Tuple2.of(

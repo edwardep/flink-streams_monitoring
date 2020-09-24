@@ -22,9 +22,9 @@ public class CoordinatorProcessFunction<VectorType> extends CoProcessFunction<In
     private transient static Logger LOG = LoggerFactory.getLogger(CoordinatorProcessFunction.class);
 
     private CoordinatorStateHandler<VectorType> state;
-    private final BaseConfig<?, VectorType, ?> cfg;
+    private final BaseConfig<VectorType> cfg;
 
-    public CoordinatorProcessFunction(BaseConfig<?, VectorType, ?> cfg) {
+    public CoordinatorProcessFunction(BaseConfig<VectorType> cfg) {
         this.cfg = cfg;
     }
 
