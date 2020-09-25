@@ -2,6 +2,7 @@ package operators;
 
 import configurations.BaseConfig;
 import datatypes.InternalStream;
+import datatypes.Vector;
 import datatypes.internals.Drift;
 import datatypes.internals.Increment;
 import datatypes.internals.InitCoordinator;
@@ -59,7 +60,6 @@ public class CoordinatorProcessFunction<VectorType> extends CoProcessFunction<In
 
     @Override
     public void open(Configuration parameters) throws Exception {
-        super.open(parameters);
         state = new CoordinatorStateHandler<>(getRuntimeContext(), cfg);
     }
 

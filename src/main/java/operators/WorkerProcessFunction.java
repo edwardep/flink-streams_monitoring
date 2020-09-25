@@ -25,7 +25,7 @@ public class WorkerProcessFunction<VectorType>  extends KeyedCoProcessFunction<S
         //System.out.println("id:"+context.getCurrentKey()+", type:"+input.getClass().getName());
 
         long currentEventTimestamp = ((Input)input).getTimestamp();
-        if(currentEventTimestamp - state.getCurrentSlideTimestamp() >= 5000) {
+        if(currentEventTimestamp - state.getCurrentSlideTimestamp() >= cfg.windowSlide().toMilliseconds()) {
             state.setCurrentSlideTimestamp(currentEventTimestamp);
             state.setLastTs(currentEventTimestamp); //todo : maybe it can be merged with 'currentSlideTimestamp'
             subRoundProcess(state, collector, cfg);
@@ -65,7 +65,6 @@ public class WorkerProcessFunction<VectorType>  extends KeyedCoProcessFunction<S
 
     @Override
     public void open(Configuration parameters) throws Exception {
-        super.open(parameters);
         state = new WorkerStateHandler<>(getRuntimeContext(), cfg);
     }
 }

@@ -54,7 +54,7 @@ public class SlidingWindow {
         env.setParallelism(1);
         env.getConfig().setAutoWatermarkInterval(1);
         ParameterTool parameters = ParameterTool.fromPropertiesFile("/home/edwardep/flink-streams_monitoring/src/main/java/properties/pico.properties");
-        AGMSConfig config = new AGMSConfig(1, 0.1);
+        AGMSConfig config = new AGMSConfig(parameters);
 
         KeyedStream<InternalStream, String> keyedStream = env
                 .addSource(createConsumerInput(parameters).setStartFromEarliest())
@@ -126,7 +126,7 @@ public class SlidingWindow {
         env.setParallelism(1);
         env.getConfig().setAutoWatermarkInterval(1);
         ParameterTool parameters = ParameterTool.fromPropertiesFile("/home/edwardep/flink-streams_monitoring/src/main/java/properties/pico.properties");
-        AGMSConfig config = new AGMSConfig(1, 0.1);
+        AGMSConfig config = new AGMSConfig(parameters);
 
         env
                 .addSource(createConsumerInput(parameters).setStartFromEarliest())

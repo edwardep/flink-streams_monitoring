@@ -21,6 +21,7 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
 import org.apache.flink.streaming.api.functions.ProcessFunction;
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
+import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
@@ -82,12 +83,11 @@ public class Validation {
 
         env.setParallelism(1);
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
-        env.getConfig().setAutoWatermarkInterval(1);
+        env.getConfig().setAutoWatermarkInterval(1L);
         ParameterTool parameters = ParameterTool.fromPropertiesFile("/home/edwardep/flink-streams_monitoring/src/main/java/properties/pico.properties");
-        AGMSConfig config = new AGMSConfig(1,0.1);
+        AGMSConfig config = new AGMSConfig(parameters);
         env
                 .addSource(createConsumerInput(parameters).setStartFromEarliest())
-                .setParallelism(1)
                 .flatMap(new WorldCupMapSource(config))
                 .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InternalStream>() {
                     @Override
@@ -105,7 +105,7 @@ public class Validation {
                     public void processElement(InternalStream input, Context context, Collector<String> collector) throws Exception {
                         long currentEventTimestamp = ((Input)input).getTimestamp();
 
-                        if(currentEventTimestamp - currentSlideTimestamp >= 5000) {
+                        if(currentEventTimestamp - currentSlideTimestamp >= config.windowSlide().toMilliseconds()) {
                             currentSlideTimestamp = currentEventTimestamp;
                             collector.collect(config.queryFunction(config.scaleVector(state.getDrift(), 1/10.0), ((Input) input).getTimestamp()));
                         }
@@ -116,9 +116,10 @@ public class Validation {
                         state = new WorkerStateHandler<>(getRuntimeContext(), config);
                     }
                 })
-                .writeAsText("/home/edwardep/flink-streams_monitoring/logs/validation_window_1600_10.txt", FileSystem.WriteMode.OVERWRITE);
+                .writeAsText("/home/edwardep/flink-streams_monitoring/logs/validation_window_1600_fromfile.txt", FileSystem.WriteMode.OVERWRITE);
 
 
+        System.out.println(env.getExecutionPlan());
 
         env.execute();
     }

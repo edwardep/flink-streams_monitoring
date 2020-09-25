@@ -55,11 +55,7 @@ public class MonitoringJobWithKafka {
         /**
          *  The FGM configuration class. (User-implemented functions)
          */
-        AGMSConfig config = new AGMSConfig(
-                parameters.getInt("workers", defWorkers),
-                parameters.getDouble("epsilon", defEpsilon),
-                parameters.getBoolean("sliding-window", false),
-                parameters.getBoolean("rebalance", false));
+        AGMSConfig config = new AGMSConfig(parameters);
 
         /**
          *  Dummy Source to Initialize coordinator
@@ -110,10 +106,7 @@ public class MonitoringJobWithKafka {
                         }
                     })
                     .keyBy(InternalStream::getStreamID)
-                    .process(new CustomSlidingWindow(
-                            Time.seconds(parameters.getInt("window", defWindowSize)),
-                            Time.seconds(parameters.getInt("slide", defSlideSize))
-                    ))
+                    .process(new CustomSlidingWindow(config.windowSize(), config.windowSlide()))
 
                     /**
                      * The KeyedCoProcessFunction contains all of fgm's worker logic.

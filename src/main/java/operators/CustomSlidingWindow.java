@@ -1,5 +1,6 @@
 package operators;
 
+import configurations.AGMSConfig;
 import datatypes.InternalStream;
 import datatypes.internals.Input;
 import org.apache.flink.api.common.state.MapState;

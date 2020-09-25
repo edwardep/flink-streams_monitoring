@@ -5,7 +5,6 @@ import jobs.MonitoringJob;
 import org.apache.flink.streaming.api.functions.co.CoProcessFunction;
 import org.apache.flink.util.Collector;
 
-@Deprecated
 public class IterationHead extends CoProcessFunction<InternalStream, InternalStream, InternalStream> {
 
     /**
