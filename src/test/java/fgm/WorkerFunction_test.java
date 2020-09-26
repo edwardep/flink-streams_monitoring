@@ -121,7 +121,7 @@ public class WorkerFunction_test {
 
                 // validate
                 assertEquals(1.5, state.getQuantum());
-                assertTrue(state.getSubRoundInit());
+                assertEquals(0, (int) state.getLocalCounter());
                 assertTrue(state.getSubRoundPhase());
 
             }
@@ -156,8 +156,9 @@ public class WorkerFunction_test {
                 assertEquals("{(0,0)=10.0}", state.getEstimate().toString());
                 assertEquals(1.0, state.getQuantum());
                 assertEquals(conf.safeFunction(new Vector(), (Vector) state.getEstimate(), null), state.getLastZeta());
+                assertEquals(0, (int) state.getLocalCounter());
                 assertTrue(state.getSubRoundPhase());
-                assertTrue(state.getSubRoundInit());
+
 
             }
 

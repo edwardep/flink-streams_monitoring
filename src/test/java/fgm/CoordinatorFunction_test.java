@@ -29,7 +29,7 @@ public class CoordinatorFunction_test {
     private KeyedStream<InternalStream, String> source;
 
     // instantiate fgm configuration
-    private static TestP1Config conf = new TestP1Config();
+    private static final TestP1Config conf = new TestP1Config();
 
     @Before
     public void setup() {
@@ -55,7 +55,7 @@ public class CoordinatorFunction_test {
     @Test
     public void aggregatingEstimate_test() throws Exception {
         source.process(new KeyedProcessFunction<String, InternalStream, InternalStream>() {
-            CoordinatorStateHandler state;
+            CoordinatorStateHandler<Vector> state;
 
             @Override
             public void processElement(InternalStream internalStream, Context context, Collector<InternalStream> collector) throws Exception {
@@ -63,23 +63,23 @@ public class CoordinatorFunction_test {
                 CoProcessFunction.Context ctx = Mockito.mock(CoProcessFunction.Context.class);
 
                 // mock input
-                InternalStream input = new Drift<>(0, new Vector(generateSequence(5)));
+                Drift<Vector> input = new Drift<>(0, new Vector(generateSequence(5)));
 
                 // call routine
-                handleDrift(state, (Drift) input, ctx, collector, conf);
+                handleDrift(state, input, ctx, collector, conf);
 
                 assertEquals(new Vector(generateSequence(5)), state.getEstimate());
 
                 state.setNodeCount(0);
                 // calling again, expecting the values to be doubled
-                handleDrift(state, (Drift) input, ctx, collector, conf);
+                handleDrift(state, input, ctx, collector, conf);
 
                 assertEquals(new Vector(generateSequence(5,2)), state.getEstimate());
 
                 state.setNodeCount(0);
                 // mock negative drift values
                 input = new Drift<>(0, new Vector(generateSequence(5, -1)));
-                handleDrift(state, (Drift) input, ctx, collector, conf);
+                handleDrift(state, input, ctx, collector, conf);
 
                 assertEquals(new Vector(generateSequence(5)), state.getEstimate());
             }
@@ -102,8 +102,8 @@ public class CoordinatorFunction_test {
         int uniqueStreams = 4;
 
         source.process(new KeyedProcessFunction<String, InternalStream, InternalStream>() {
-            CoordinatorStateHandler state;
-            TestP4Config conf = new TestP4Config(); // overriding setup configuration
+            CoordinatorStateHandler<Vector> state;
+            final TestP4Config conf = new TestP4Config(); // overriding setup configuration
 
             @Override
             public void processElement(InternalStream input, Context context, Collector<InternalStream> collector) throws Exception {
@@ -115,8 +115,8 @@ public class CoordinatorFunction_test {
                  *   computes the Global Estimate vector and finally broadcasts it back(hyperparameters).
                  */
                 for (int tid = 0; tid < uniqueStreams; tid++) {
-                    InternalStream payload = new Drift<>(0, new Vector(generateSequence(10)));
-                    handleDrift(state, (Drift) payload, ctx, collector, conf);
+                    Drift<Vector> payload = new Drift<>(0, new Vector(generateSequence(10)));
+                    handleDrift(state, payload, ctx, collector, conf);
                 }
 
                 // validate : expecting global state to be equal to each drift since it is the result of Averaging
@@ -149,8 +149,8 @@ public class CoordinatorFunction_test {
         int uniqueStreams = 4;
 
         source.process(new KeyedProcessFunction<String, InternalStream, InternalStream>() {
-            CoordinatorStateHandler state;
-            TestP4Config conf = new TestP4Config(); // overriding setup configuration
+            CoordinatorStateHandler<Vector> state;
+            final TestP4Config conf = new TestP4Config(); // overriding setup configuration
 
             @Override
             public void processElement(InternalStream input, Context context, Collector<InternalStream> collector) throws Exception {
@@ -161,7 +161,7 @@ public class CoordinatorFunction_test {
 
                 // test_case: Workers send their Phi(X) values and coordinator computes Psi.
                 for (int tid = 0; tid < uniqueStreams; tid++)
-                    handleZeta(state, ctx, zeta, collector, conf);
+                    handleZeta(state, zeta, collector, conf);
 
                 // validate
                 assertEquals(uniqueStreams * zeta, state.getPsi());
@@ -189,11 +189,11 @@ public class CoordinatorFunction_test {
     @Test
     public void fgm_handleZeta_pass_test() throws Exception {
         // setup : mock received Phi(Xi) named zeta
-        Double zeta = 1.0;
+        double zeta = 1.0;
         int uniqueStreams = 4;
         source.process(new KeyedProcessFunction<String, InternalStream, InternalStream>() {
-            CoordinatorStateHandler state;
-            TestP4Config conf = new TestP4Config();
+            CoordinatorStateHandler<Vector> state;
+            final TestP4Config conf = new TestP4Config();
 
             @Override
             public void processElement(InternalStream input, Context context, Collector<InternalStream> collector) throws Exception {
@@ -206,7 +206,7 @@ public class CoordinatorFunction_test {
                  *   should begin.
                  */
                 for (int tid = 0; tid < uniqueStreams; tid++)
-                    handleZeta(state, ctx, zeta, collector, conf);
+                    handleZeta(state, zeta, collector, conf);
 
                 // validate
                 assertEquals(uniqueStreams * zeta, state.getPsi());
@@ -223,7 +223,7 @@ public class CoordinatorFunction_test {
         env.execute();
 
         // TEST_CASE: assert that the broadcasted POJOs are the expected ones
-        Double quantum = (uniqueStreams * zeta) / (2 * uniqueStreams); // psi = zeta*uniqueStreams because zeta is constant
+        double quantum = (uniqueStreams * zeta) / (2 * uniqueStreams); // psi = zeta*uniqueStreams because zeta is constant
         for (int tid = 0; tid < uniqueStreams; tid++) {
             InternalStream expected = new Quantum(String.valueOf(tid), quantum);
             assertEquals(expected.toString(), Testable.InternalStreamSink.result.get(tid).toString());
@@ -239,8 +239,8 @@ public class CoordinatorFunction_test {
     public void fgm_handleIncrement_test() throws Exception {
         int uniqueStreams = 4;
         source.process(new KeyedProcessFunction<String, InternalStream, InternalStream>() {
-            CoordinatorStateHandler state;
-            TestP4Config conf = new TestP4Config();
+            CoordinatorStateHandler<Vector> state;
+            final TestP4Config conf = new TestP4Config();
 
             @Override
             public void processElement(InternalStream input, Context ctx, Collector<InternalStream> collector) throws Exception {
@@ -293,8 +293,8 @@ public class CoordinatorFunction_test {
     public void fgm_multipleSubRounds_test() throws Exception {
         int uniqueStreams = 4;
         source.process(new KeyedProcessFunction<String, InternalStream, InternalStream>() {
-            CoordinatorStateHandler state;
-            TestP4Config conf = new TestP4Config();
+            CoordinatorStateHandler<Vector> state;
+            final TestP4Config conf = new TestP4Config();
 
             @Override
             public void processElement(InternalStream input, Context context, Collector<InternalStream> collector) throws Exception {
@@ -305,7 +305,7 @@ public class CoordinatorFunction_test {
                     // receiving Phi(Xi), new SubRound
                     InternalStream stream = new Zeta(1.0);
                     for (int i = 0; i < uniqueStreams; i++)
-                        handleZeta(state, ctx, ((Zeta) stream).getPayload(), collector, conf);
+                        handleZeta(state, ((Zeta) stream).getPayload(), collector, conf);
 
                     assertFalse(state.getSync());
 

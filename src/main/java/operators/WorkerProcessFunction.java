@@ -30,11 +30,7 @@ public class WorkerProcessFunction<VectorType>  extends KeyedCoProcessFunction<S
             state.setLastTs(currentEventTimestamp); //todo : maybe it can be merged with 'currentSlideTimestamp'
             subRoundProcess(state, collector, cfg);
         }
-
         updateDrift(state, input, cfg);
-
-            //}
-        //subRoundProcess(state, collector, cfg);
     }
 
     @Override
@@ -58,7 +54,7 @@ public class WorkerProcessFunction<VectorType>  extends KeyedCoProcessFunction<S
                 break;
             case "Lambda":
                 newRebalancedRound(state, ((Lambda) input).getLambda(), cfg);
-                subRoundProcess(state, collector, cfg);
+                sendZeta(state, collector);
                 break;
         }
     }

@@ -10,19 +10,33 @@ import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
+import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
+import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
 import org.apache.flink.streaming.connectors.kafka.*;
+import org.apache.flink.streaming.connectors.kafka.config.OffsetCommitMode;
+import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
+import org.apache.flink.streaming.connectors.kafka.internals.AbstractPartitionDiscoverer;
+import org.apache.flink.streaming.connectors.kafka.internals.KafkaTopicPartition;
+import org.apache.flink.streaming.connectors.kafka.internals.KafkaTopicsDescriptor;
+import org.apache.flink.util.SerializedValue;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.Test;
 import sources.WorldCupMapSource;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 public class ExitStrategy {
 
@@ -40,7 +54,7 @@ public class ExitStrategy {
                         new SSS(),
                         properties).setStartFromEarliest())
                 .setParallelism(1)
-                .flatMap(new WorldCupMapSource(new AGMSConfig()))
+                .flatMap(new WorldCupMapSource(new AGMSConfig(params)))
                 .returns(TypeInformation.of(InternalStream.class));
 
         System.out.println(env.getExecutionPlan());
@@ -48,16 +62,12 @@ public class ExitStrategy {
         System.out.println("runtime: "+executionResult.getNetRuntime(TimeUnit.MILLISECONDS));
     }
 
+
     public static class SSS extends SimpleStringSchema{
 
         @Override
         public boolean isEndOfStream(String nextElement) {
-            if(nextElement.equals("EOF")){
-                return true;
-            }
-            else{
-                return super.isEndOfStream(nextElement);
-            }
+            return nextElement.equals("EOF");
         }
     }
 

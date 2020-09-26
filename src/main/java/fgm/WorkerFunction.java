@@ -5,6 +5,7 @@ import configurations.BaseConfig;
 import datatypes.InternalStream;
 import datatypes.internals.Drift;
 import datatypes.internals.Increment;
+import datatypes.internals.Input;
 import datatypes.internals.Zeta;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
@@ -26,6 +27,8 @@ public class WorkerFunction implements Serializable {
     public static <VectorType> void updateDrift(WorkerStateHandler<VectorType> state,
                                                 InternalStream input,
                                                 BaseConfig<VectorType> cfg) throws Exception {
+        //if (lambda = 1.0) it does nothing
+        //((Input)input).setVal(((Input)input).getVal()/state.getLambda());
         state.setDrift(cfg.updateVector(input, state.getDrift()));
     }
 
@@ -55,10 +58,22 @@ public class WorkerFunction implements Serializable {
         assert state.getQuantum() > 0d;
 
         // Start SubRound phase
+        initializeSubround(state);
         state.setSubRoundPhase(true);
-        state.setSubRoundInit(true);
     }
 
+    public static <VectorType> void newRebalancedRound(WorkerStateHandler<VectorType> state,
+                                                       Double lambda,
+                                                       BaseConfig<VectorType> cfg) throws Exception {
+        // save lambda
+        state.setLambda(lambda);
+
+        // scale drift vector
+        //state.setDrift(cfg.scaleVector(state.getDrift(), 1/lambda));
+
+        // compute fi = lambda * fi(X/lambda)
+        state.setFi(lambda * cfg.safeFunction(cfg.scaleVector(state.getDrift(), 1/lambda), state.getEstimate(), state.getSafeZone()));
+    }
     /**
      * Emits a <i>POJO</i> containing the <b>drift vector</b> and other info.<br>
      * This function is called at the end of a Round.<br>
@@ -104,10 +119,17 @@ public class WorkerFunction implements Serializable {
         assert state.getQuantum() > 0d;
 
         // restart sub-round phase
+        initializeSubround(state);
         state.setSubRoundPhase(true);
-        state.setSubRoundInit(true);
     }
 
+    /**
+     * A new SubRound begins, initialize Z and C_i
+     */
+    public static <VectorType> void initializeSubround(WorkerStateHandler<VectorType> state) throws IOException {
+        state.setZeta(state.getLastZeta());
+        state.setLocalCounter(0);
+    }
     /**
      * The subRound process is called on every input record as long as the
      * {@link WorkerStateHandler#getSubRoundPhase() SubRoundPhase} is <b>enabled</b>.
@@ -136,19 +158,8 @@ public class WorkerFunction implements Serializable {
         if (state.getDrift().equals(cfg.newVectorInstance()))
             return;
 
-        /*  new SubRound begins, initialize Z and Ci */
-        if (state.getSubRoundInit()) {
-            state.setZeta(state.getLastZeta());
-            state.setLocalCounter(0);
-            state.setSubRoundInit(false);
-        }
-
         /*  Compute new phi(X) value */
-        state.setFi(
-                state.getLambda() * cfg.safeFunction(
-                        cfg.scaleVector(state.getDrift(),1/state.getLambda()),
-                        state.getEstimate(),
-                        state.getSafeZone()));
+        state.setFi(state.getLambda() * cfg.safeFunction(cfg.scaleVector(state.getDrift(), 1/state.getLambda()), state.getEstimate(), state.getSafeZone()));
 
         /*  Compute new local Counter and get the increment */
         int old_counter = state.getLocalCounter();
@@ -160,22 +171,5 @@ public class WorkerFunction implements Serializable {
             state.setLocalCounter(new_counter);
             out.collect(new Increment(increment));
         }
-    }
-
-    public static <VectorType> void newRebalancedRound(WorkerStateHandler<VectorType> state,
-                                                       Double payload,
-                                                       BaseConfig<VectorType> cfg) throws Exception {
-
-        // save lambda
-        state.setLambda(payload);
-
-        // Compute the quantum value
-        double fi0 = state.getLambda() * cfg.safeFunction(cfg.newVectorInstance(), state.getEstimate(), state.getSafeZone());
-        state.setLastZeta(fi0);
-        state.setQuantum(fi0/2);
-
-        // begin subRound phase
-        state.setSubRoundPhase(true);
-        state.setSubRoundInit(true);
     }
 }
