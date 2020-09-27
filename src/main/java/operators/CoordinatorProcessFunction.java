@@ -33,10 +33,10 @@ public class CoordinatorProcessFunction<VectorType> extends CoProcessFunction<In
     public void processElement1(InternalStream input, Context ctx, Collector<InternalStream> collector) throws Exception {
         //System.out.println(input.getClass());
         if(endOfFile){
-            //broadcast_SigInt(collector, cfg);
-            System.out.println("Rounds:"+getRuntimeContext().getAccumulator("roundsCounter"));
-            System.out.println("Subrounds:"+getRuntimeContext().getAccumulator("subroundsCounter"));
-            System.out.println("RB:"+getRuntimeContext().getAccumulator("rebalancedRoundsCounter"));
+            broadcast_SigInt(collector, cfg);
+//            System.out.println("Rounds:"+getRuntimeContext().getAccumulator("roundsCounter"));
+//            System.out.println("Subrounds:"+getRuntimeContext().getAccumulator("subroundsCounter"));
+//            System.out.println("RB:"+getRuntimeContext().getAccumulator("rebalancedRoundsCounter"));
             return;
         }
 
