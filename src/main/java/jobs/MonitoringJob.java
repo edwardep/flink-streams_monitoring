@@ -71,15 +71,40 @@ public class MonitoringJob {
         /**
          *  Reading line by line from file and streaming POJOs
          */
-        DataStream<InternalStream> streamFromFile = env
+        SingleOutputStreamOperator<InternalStream> streamFromFile = env
                 .addSource(createConsumerInput(parameters).setStartFromEarliest())
                 .setParallelism(1)
-                .flatMap(new WorldCupMapSource(config));
+                .flatMap(new WorldCupMapSource(config))
+                .setParallelism(config.workers());
+
+
+
+        SingleOutputStreamOperator<InternalStream> input;
+        if(config.slidingWindowEnabled()) {
+            /**
+             *  Ascending Timestamp assigner & Sliding Window operator
+             */
+            input = streamFromFile
+                    .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InternalStream>() {
+                        @Override
+                        public long extractAscendingTimestamp(InternalStream inputRecord) {
+                            return ((Input) inputRecord).getTimestamp();
+                        }
+                    })
+                    .keyBy(InternalStream::getStreamID)
+                    .process(new CustomSlidingWindow(config.windowSize(), config.windowSlide()))
+                    .setParallelism(config.workers())
+                    .name("Sliding Window");
+
+        }
+        else {
+            input = streamFromFile;
+        }
 
         /**
          *  Creating Iterative Stream
          */
-        IterativeStream.ConnectedIterativeStreams<InternalStream, InternalStream > iteration = streamFromFile
+        IterativeStream.ConnectedIterativeStreams<InternalStream, InternalStream> iteration = input
                 .iterate()
                 .withFeedbackType(InternalStream.class);
 
@@ -89,49 +114,23 @@ public class MonitoringJob {
          *  and the side output respectively.
          */
         SingleOutputStreamOperator<InternalStream> iteration_input = iteration
-                .process(new IterationHead());
+                .process(new IterationHead())
+                .setParallelism(config.workers());
 
 
-        SingleOutputStreamOperator<InternalStream> worker;
+        /**
+         * The KeyedCoProcessFunction contains all of fgm's worker logic.
+         * Input1 -> Sliding Window output
+         * Input2 -> Feedback stream from IterationHead side-output
+         * Output -> Connects to Coordinator's Input1
+         */
+        SingleOutputStreamOperator<InternalStream> worker = iteration_input
+                .connect(iteration_input.getSideOutput(feedback))
+                .keyBy(InternalStream::getStreamID, InternalStream::getStreamID)
+                .process(new WorkerProcessFunction<>(config))
+                .setParallelism(config.workers())
+                .name("Workers");
 
-        if(config.slidingWindowEnabled()) {
-            /**
-             *  Ascending Timestamp assigner & Sliding Window operator
-             */
-            worker = iteration_input
-                    .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InternalStream>() {
-                        @Override
-                        public long extractAscendingTimestamp(InternalStream inputRecord) {
-                            return ((Input) inputRecord).getTimestamp();
-                        }
-                    })
-                    .keyBy(InternalStream::getStreamID)
-                    .process(new CustomSlidingWindow(config.windowSize(), config.windowSlide()))
-
-                    /**
-                     * The KeyedCoProcessFunction contains all of fgm's worker logic.
-                     * Input1 -> Sliding Window output
-                     * Input2 -> Feedback stream from IterationHead side-output
-                     * Output -> Connects to Coordinator's Input1
-                     */
-                    .connect(iteration_input.getSideOutput(feedback))
-                    .keyBy(InternalStream::getStreamID, InternalStream::getStreamID)
-                    .process(new WorkerProcessFunction<>(config));
-        }
-        else {
-
-            worker = iteration_input
-
-                    /**
-                     * The KeyedCoProcessFunction contains all of fgm's worker logic.
-                     * Input1 -> Sliding Window output
-                     * Input2 -> Feedback stream from IterationHead side-output
-                     * Output -> Connects to Coordinator's Input1
-                     */
-                    .connect(iteration_input.getSideOutput(feedback))
-                    .keyBy(InternalStream::getStreamID, InternalStream::getStreamID)
-                    .process(new WorkerProcessFunction<>(config));
-        }
 
         /**
          *  FGM Coordinator, a KeyedCoProcessFunction with:
@@ -153,6 +152,7 @@ public class MonitoringJob {
          */
         DataStream<InternalStream> feedback = coordinator
                 .map(x -> x)
+                .setParallelism(config.workers())
                 .returns(TypeInformation.of(InternalStream.class))
                 .name("broadcast");
 
@@ -172,7 +172,7 @@ public class MonitoringJob {
                 .name("Output");
 
 
-//        System.out.println(env.getExecutionPlan());
+        System.out.println(env.getExecutionPlan());
 //        Misc.printExecutionMessage(parameters);
         JobExecutionResult executionResult = env.execute(parameters.get("jobName", defJobName));
         Misc.printExecutionResults(parameters, executionResult);

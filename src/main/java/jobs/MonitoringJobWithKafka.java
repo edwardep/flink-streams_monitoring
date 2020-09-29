@@ -15,12 +15,10 @@ import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
-import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.util.OutputTag;
 import sources.WorldCupMapSource;
 import utils.Misc;
 
-import java.util.concurrent.TimeUnit;
 
 import static kafka.KafkaUtils.*;
 import static utils.DefJobParameters.*;
@@ -82,13 +80,15 @@ public class MonitoringJobWithKafka {
         DataStream<InternalStream> streamFromFile = env
                 .addSource(createConsumerInput(parameters).setStartFromEarliest())
                 .setParallelism(1)
-                .flatMap(new WorldCupMapSource(config));
+                .flatMap(new WorldCupMapSource(config))
+                .setParallelism(config.workers());
 
         /**
          *  Creating Iterative Stream
          */
         DataStream<InternalStream> iteration = env
                 .addSource(createConsumerInternal(parameters, config))
+                .setParallelism(config.workers())
                 .name("Iteration Src");
 
 
@@ -107,6 +107,8 @@ public class MonitoringJobWithKafka {
                     })
                     .keyBy(InternalStream::getStreamID)
                     .process(new CustomSlidingWindow(config.windowSize(), config.windowSlide()))
+                    .setParallelism(config.workers())
+                    .name("SlidingWindow")
 
                     /**
                      * The KeyedCoProcessFunction contains all of fgm's worker logic.
@@ -116,7 +118,9 @@ public class MonitoringJobWithKafka {
                      */
                     .connect(iteration)
                     .keyBy(InternalStream::getStreamID, InternalStream::getStreamID)
-                    .process(new WorkerProcessFunction<>(config));
+                    .process(new WorkerProcessFunction<>(config))
+                    .setParallelism(config.workers())
+                    .name("Workers");
         }
         else {
 
@@ -130,7 +134,9 @@ public class MonitoringJobWithKafka {
                      */
                     .connect(iteration)
                     .keyBy(InternalStream::getStreamID, InternalStream::getStreamID)
-                    .process(new WorkerProcessFunction<>(config));
+                    .process(new WorkerProcessFunction<>(config))
+                    .setParallelism(config.workers())
+                    .name("Workers");
         }
         /**
          *  FGM Coordinator, a KeyedCoProcessFunction with:
@@ -153,6 +159,7 @@ public class MonitoringJobWithKafka {
         DataStream<InternalStream> feedback = coordinator
                 .map(x -> x)
                 .returns(TypeInformation.of(InternalStream.class))
+                .setParallelism(config.workers())
                 .name("broadcast");
 
 
@@ -161,6 +168,7 @@ public class MonitoringJobWithKafka {
          */
         feedback
                 .addSink(createProducerInternal(parameters))
+                .setParallelism(config.workers())
                 .name("Iteration Sink");
 
         /**
@@ -173,7 +181,7 @@ public class MonitoringJobWithKafka {
                 .name("Output");
 
 
-        //System.out.println(env.getExecutionPlan());
+        System.out.println(env.getExecutionPlan());
 
         //Misc.printExecutionMessage(parameters);
         JobExecutionResult executionResult = env.execute(parameters.get("jobName", defJobName));
