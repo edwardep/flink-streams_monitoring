@@ -7,6 +7,8 @@ import datatypes.internals.Drift;
 import datatypes.internals.Increment;
 import datatypes.internals.Input;
 import datatypes.internals.Zeta;
+import org.apache.flink.streaming.api.functions.co.KeyedCoProcessFunction;
+import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,7 +84,7 @@ public class WorkerFunction implements Serializable {
                                               Collector<InternalStream> out) throws Exception {
 
         // Send Drift Vector to the Coordinator
-        out.collect(new Drift<>(state.getLastTs(), state.getDrift()));
+        out.collect(new Drift<>(state.getCurrentSlideTimestamp(), state.getDrift()));
 
         // Clear the drift vector
         state.setDrift(null);
@@ -171,5 +173,19 @@ public class WorkerFunction implements Serializable {
             state.setLocalCounter(new_counter);
             out.collect(new Increment(increment));
         }
+    }
+
+    /**
+     * It delays the first round of FGM while allowing the local drift vectors to accumulate data. It achieves that
+     * by registering an eventTime timer, which triggers the first drift flush after a constant amount of time.
+     * @param state The Worker state handler
+     * @param ctx   Context of the workers' processFunction
+     * @param delay The delay value ( e.g Time.seconds(10))
+     * @param <VectorType>  The datatype of the state vector
+     * @throws IOException
+     */
+    public static <VectorType> void warmup(WorkerStateHandler<VectorType> state, KeyedCoProcessFunction.Context ctx, Time delay) throws IOException {
+        if(state.getCurrentSlideTimestamp() == 0)
+            ctx.timerService().registerEventTimeTimer(ctx.timestamp() + delay.toMilliseconds());
     }
 }

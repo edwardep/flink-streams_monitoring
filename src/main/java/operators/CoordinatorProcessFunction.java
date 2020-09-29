@@ -32,13 +32,9 @@ public class CoordinatorProcessFunction<VectorType> extends CoProcessFunction<In
     @Override
     public void processElement1(InternalStream input, Context ctx, Collector<InternalStream> collector) throws Exception {
         //System.out.println(input.getClass());
-        if(endOfFile){
+        System.out.println("EOF:"+endOfFile+", CWM:"+ctx.timerService().currentWatermark());
+        if(endOfFile && ctx.timerService().currentWatermark() == Long.MAX_VALUE)
             broadcast_SigInt(collector, cfg);
-//            System.out.println("Rounds:"+getRuntimeContext().getAccumulator("roundsCounter"));
-//            System.out.println("Subrounds:"+getRuntimeContext().getAccumulator("subroundsCounter"));
-//            System.out.println("RB:"+getRuntimeContext().getAccumulator("rebalancedRoundsCounter"));
-            return;
-        }
 
         switch (input.type){
             case "Drift":
@@ -56,19 +52,11 @@ public class CoordinatorProcessFunction<VectorType> extends CoProcessFunction<In
 
     @Override
     public void processElement2(InternalStream input, Context ctx, Collector<InternalStream> collector) throws Exception {
-        // here you can initialize the globalEstimate
-        long current = ctx.timerService().currentProcessingTime();
-        ctx.timerService().registerProcessingTimeTimer(current + ((InitCoordinator)input).getWarmup()*1000);
+        // here you could initialize the globalEstimate
     }
 
     @Override
-    public void open(Configuration parameters) throws Exception {
+    public void open(Configuration parameters) {
         state = new CoordinatorStateHandler<>(getRuntimeContext(), cfg);
-    }
-
-    @Override
-    public void onTimer(long timestamp, OnTimerContext ctx, Collector<InternalStream> out) throws Exception {
-        super.onTimer(timestamp, ctx, out);
-        broadcast_RequestDrift(out, cfg);
     }
 }

@@ -2,8 +2,10 @@ package operators;
 
 import configurations.BaseConfig;
 import datatypes.InternalStream;
-import datatypes.internals.*;
-import fgm.WorkerFunction;
+import datatypes.internals.GlobalEstimate;
+import datatypes.internals.Input;
+import datatypes.internals.Lambda;
+import datatypes.internals.Quantum;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.co.KeyedCoProcessFunction;
 import org.apache.flink.util.Collector;
@@ -23,14 +25,23 @@ public class WorkerProcessFunction<VectorType>  extends KeyedCoProcessFunction<S
     @Override
     public void processElement1(InternalStream input, Context context, Collector<InternalStream> collector) throws Exception {
         //System.out.println("id:"+context.getCurrentKey()+", type:"+input.getClass().getName());
-
         long currentEventTimestamp = ((Input)input).getTimestamp();
+
+        if(context.timerService().currentWatermark() == Long.MAX_VALUE)
+
+
+        // Delay first drift flush
+        warmup(state, context, cfg.warmup());
+
+        // append input record to Drift
+        updateDrift(state, input, cfg);
+
+        // call subRoundProcess once every cfg.windowSlide() seconds
         if(currentEventTimestamp - state.getCurrentSlideTimestamp() >= cfg.windowSlide().toMilliseconds()) {
             state.setCurrentSlideTimestamp(currentEventTimestamp);
-            state.setLastTs(currentEventTimestamp); //todo : maybe it can be merged with 'currentSlideTimestamp'
             subRoundProcess(state, collector, cfg);
+            System.out.println(context.getCurrentKey()+"> "+context.timerService().currentWatermark());
         }
-        updateDrift(state, input, cfg);
     }
 
     @Override
@@ -62,5 +73,10 @@ public class WorkerProcessFunction<VectorType>  extends KeyedCoProcessFunction<S
     @Override
     public void open(Configuration parameters) throws Exception {
         state = new WorkerStateHandler<>(getRuntimeContext(), cfg);
+    }
+
+    @Override
+    public void onTimer(long timestamp, OnTimerContext ctx, Collector<InternalStream> out) throws Exception {
+        sendDrift(state, out);
     }
 }

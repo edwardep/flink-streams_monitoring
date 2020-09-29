@@ -88,6 +88,8 @@ public interface BaseConfig<VectorType> extends Serializable {
      */
     default Double getMQF() { return 0.01; }
 
+    default Time warmup() { return Time.minutes(1); };
+
     default boolean rebalancingEnabled() { return false; }
 
     double safeFunction(VectorType drift, VectorType estimate, SafeZone safeZone);

@@ -169,7 +169,7 @@ public class KafkaUtils {
                 endOfFile = true;
                 return true;
             }
-            else {
+            else{
                 return false;
             }
         }

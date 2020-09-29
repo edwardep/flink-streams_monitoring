@@ -13,10 +13,15 @@ import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
+import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.util.OutputTag;
 import sources.WorldCupMapSource;
+import sun.nio.cs.ext.MacArabic;
+import utils.AscendingWatermark;
+import utils.MaxWatermark;
 import utils.Misc;
 
 
@@ -45,7 +50,7 @@ public class MonitoringJobWithKafka {
         }
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.setParallelism(parameters.getInt("parallelism", defParallelism));
+        env.setParallelism(parameters.getInt("workers", defWorkers));
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
         env.getConfig().setAutoWatermarkInterval(1);
         //env.getConfig().disableGenericTypes(); //todo: Generics fall back to Kryo
@@ -77,67 +82,57 @@ public class MonitoringJobWithKafka {
         /**
          *  Reading line by line from file and streaming POJOs
          */
-        DataStream<InternalStream> streamFromFile = env
-                .addSource(createConsumerInput(parameters).setStartFromEarliest())
+        SingleOutputStreamOperator<InternalStream> streamFromFile = env
+                .addSource(
+                        createConsumerInput(parameters)
+                                .setStartFromEarliest()
+                                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<String>() {
+                                    @Override
+                                    public long extractAscendingTimestamp(String s) {
+                                        return Long.parseLong(s.split(";")[0])*1000;
+                                    }
+                                }))
                 .setParallelism(1)
-                .flatMap(new WorldCupMapSource(config))
-                .setParallelism(config.workers());
+                .flatMap(new WorldCupMapSource(config));
+                //.assignTimestampsAndWatermarks(new AscendingWatermark());
 
         /**
          *  Creating Iterative Stream
          */
         DataStream<InternalStream> iteration = env
                 .addSource(createConsumerInternal(parameters, config))
-                .setParallelism(config.workers())
+                .assignTimestampsAndWatermarks(new MaxWatermark())
                 .name("Iteration Src");
 
 
-        SingleOutputStreamOperator<InternalStream> worker;
+        SingleOutputStreamOperator<InternalStream> input;
 
         if(config.slidingWindowEnabled()) {
             /**
              *  Ascending Timestamp assigner & Sliding Window operator
              */
-            worker = streamFromFile
-                    .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InternalStream>() {
-                        @Override
-                        public long extractAscendingTimestamp(InternalStream inputRecord) {
-                            return ((Input) inputRecord).getTimestamp();
-                        }
-                    })
+            input = streamFromFile
                     .keyBy(InternalStream::getStreamID)
                     .process(new CustomSlidingWindow(config.windowSize(), config.windowSlide()))
-                    .setParallelism(config.workers())
-                    .name("SlidingWindow")
+                    .name("SlidingWindow");
 
-                    /**
-                     * The KeyedCoProcessFunction contains all of fgm's worker logic.
-                     * Input1 -> Sliding Window output
-                     * Input2 -> Feedback stream from IterationHead side-output
-                     * Output -> Connects to Coordinator's Input1
-                     */
-                    .connect(iteration)
-                    .keyBy(InternalStream::getStreamID, InternalStream::getStreamID)
-                    .process(new WorkerProcessFunction<>(config))
-                    .setParallelism(config.workers())
-                    .name("Workers");
         }
         else {
-
-            worker = streamFromFile
-
-                    /**
-                     * The KeyedCoProcessFunction contains all of fgm's worker logic.
-                     * Input1 -> Sliding Window output
-                     * Input2 -> Feedback stream from IterationHead side-output
-                     * Output -> Connects to Coordinator's Input1
-                     */
-                    .connect(iteration)
-                    .keyBy(InternalStream::getStreamID, InternalStream::getStreamID)
-                    .process(new WorkerProcessFunction<>(config))
-                    .setParallelism(config.workers())
-                    .name("Workers");
+            input = streamFromFile;
         }
+
+
+        /**
+         * The KeyedCoProcessFunction contains all of fgm's worker logic.
+         * Input1 -> Sliding Window output
+         * Input2 -> Feedback stream from IterationHead side-output
+         * Output -> Connects to Coordinator's Input1
+         */
+        SingleOutputStreamOperator<InternalStream> worker = input
+                .connect(iteration)
+                .keyBy(InternalStream::getStreamID, InternalStream::getStreamID)
+                .process(new WorkerProcessFunction<>(config))
+                .name("Workers");
         /**
          *  FGM Coordinator, a KeyedCoProcessFunction with:
          *  Input1 -> output of Workers
@@ -159,7 +154,6 @@ public class MonitoringJobWithKafka {
         DataStream<InternalStream> feedback = coordinator
                 .map(x -> x)
                 .returns(TypeInformation.of(InternalStream.class))
-                .setParallelism(config.workers())
                 .name("broadcast");
 
 
@@ -168,7 +162,6 @@ public class MonitoringJobWithKafka {
          */
         feedback
                 .addSink(createProducerInternal(parameters))
-                .setParallelism(config.workers())
                 .name("Iteration Sink");
 
         /**
