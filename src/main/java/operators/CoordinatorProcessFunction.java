@@ -49,7 +49,7 @@ public class CoordinatorProcessFunction<VectorType> extends CoProcessFunction<In
                 break;
         }
 
-        resetTimeoutTimer(ctx.timerService().currentWatermark(), state, ctx);
+        resetTimeoutTimer(ctx.timerService().currentWatermark(), state, ctx, collector, cfg);
     }
 
     @Override

@@ -3,6 +3,7 @@ package fgm;
 
 import configurations.BaseConfig;
 import datatypes.InternalStream;
+import datatypes.Vector;
 import datatypes.internals.*;
 import org.apache.flink.streaming.api.functions.co.CoProcessFunction;
 import org.apache.flink.util.Collector;
@@ -223,7 +224,14 @@ public class CoordinatorFunction {
 
     public static <VectorType> void resetTimeoutTimer(long currentWatermark,
                                                       CoordinatorStateHandler<VectorType> state,
-                                                      CoProcessFunction.Context ctx) throws IOException {
+                                                      CoProcessFunction.Context ctx,
+                                                      Collector<InternalStream> collector,
+                                                      BaseConfig<VectorType> cfg) throws IOException {
+
+        // In case a Final Watermark arrives
+        if(currentWatermark >= Long.MAX_VALUE)
+            broadcast_SigInt(collector, cfg);
+
         // Register timer for current watermark
         ctx.timerService().registerEventTimeTimer(currentWatermark + TIMEOUT);
 
