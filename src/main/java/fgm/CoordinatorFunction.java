@@ -21,6 +21,8 @@ import static jobs.MonitoringJob.Q_estimate;
 public class CoordinatorFunction {
     private transient static Logger LOG = LoggerFactory.getLogger(CoordinatorFunction.class);
 
+    private final static long TIMEOUT = 86400000L;    // timeout before broadcasting SigInt (1 day in EventTime)
+
     /**
      *  Aggregates drift vectors. Also updates the hyper-parameters.
      */
@@ -217,5 +219,19 @@ public class CoordinatorFunction {
                 state.getAggregateState(), 1/(mu * k)),
                 state.getEstimate(),
                 state.getSafeZone()));
+    }
+
+    public static <VectorType> void resetTimeoutTimer(long currentWatermark,
+                                                      CoordinatorStateHandler<VectorType> state,
+                                                      CoProcessFunction.Context ctx) throws IOException {
+        // Register timer for current watermark
+        ctx.timerService().registerEventTimeTimer(currentWatermark + TIMEOUT);
+
+        // Delete previous watermark if TIMEOUT period hasn't passed
+        if(currentWatermark - state.getPrevWatermark() < TIMEOUT)
+            ctx.timerService().deleteEventTimeTimer(state.getPrevWatermark() + TIMEOUT);
+
+        // Store current watermark for next iteration
+        state.setPrevWatermark(currentWatermark);
     }
 }

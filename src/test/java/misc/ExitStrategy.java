@@ -3,6 +3,7 @@ package misc;
 import com.esotericsoftware.kryo.util.ObjectMap;
 import configurations.AGMSConfig;
 import datatypes.InternalStream;
+import datatypes.internals.Input;
 import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
@@ -17,7 +18,9 @@ import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks;
+import org.apache.flink.streaming.api.functions.ProcessFunction;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
+import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
 import org.apache.flink.streaming.api.operators.StreamingRuntimeContext;
 import org.apache.flink.streaming.connectors.kafka.*;
 import org.apache.flink.streaming.connectors.kafka.config.OffsetCommitMode;
@@ -25,11 +28,13 @@ import org.apache.flink.streaming.connectors.kafka.internals.AbstractFetcher;
 import org.apache.flink.streaming.connectors.kafka.internals.AbstractPartitionDiscoverer;
 import org.apache.flink.streaming.connectors.kafka.internals.KafkaTopicPartition;
 import org.apache.flink.streaming.connectors.kafka.internals.KafkaTopicsDescriptor;
+import org.apache.flink.util.Collector;
 import org.apache.flink.util.SerializedValue;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.Test;
 import sources.WorldCupMapSource;
+import utils.AscendingWatermark;
 
 import java.util.Collection;
 import java.util.List;
@@ -46,15 +51,29 @@ public class ExitStrategy {
 
         ParameterTool params = ParameterTool.fromPropertiesFile("src/test/java/misc/test.properties");
         Properties properties = params.getProperties();
+        env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
+        env.getConfig().setAutoWatermarkInterval(1L);
 
         env.setParallelism(4);
         env
                 .addSource(new FlinkKafkaConsumer<>(
-                        "input-testset-day46",
+                        "input-testset-5000",
                         new SSS(),
                         properties).setStartFromEarliest())
                 .setParallelism(1)
                 .flatMap(new WorldCupMapSource(new AGMSConfig(params)))
+                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InternalStream>() {
+                    @Override
+                    public long extractAscendingTimestamp(InternalStream internalStream) {
+                        return ((Input)internalStream).getTimestamp();
+                    }
+                })
+                .process(new ProcessFunction<InternalStream, InternalStream>() {
+                    @Override
+                    public void processElement(InternalStream internalStream, Context context, Collector<InternalStream> collector) throws Exception {
+                        System.out.println(context.timerService().currentWatermark());
+                    }
+                })
                 .returns(TypeInformation.of(InternalStream.class));
 
         System.out.println(env.getExecutionPlan());

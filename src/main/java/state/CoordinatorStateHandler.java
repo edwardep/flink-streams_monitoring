@@ -25,6 +25,7 @@ public class CoordinatorStateHandler<VectorType>{
     private transient ValueState<Integer> globalCounter;
     private transient ValueState<Double> lambda;
     private transient ValueState<Long> lastTs;
+    private transient ValueState<Long> prevWatermark;
 
     private IntCounter roundsCounter = new IntCounter();
     private IntCounter subroundsCounter = new IntCounter();
@@ -48,6 +49,7 @@ public class CoordinatorStateHandler<VectorType>{
         safeZone = createState("safeZone", Types.POJO(SafeZone.class));
         lambda = createState("lambda", Types.DOUBLE);
         lastTs = createState("lastTas", Types.LONG);
+        prevWatermark = createState("prevWatermark", Types.LONG);
 
         runtimeContext.addAccumulator("roundsCounter", this.roundsCounter);
         runtimeContext.addAccumulator("subroundsCounter", this.subroundsCounter);
@@ -103,6 +105,10 @@ public class CoordinatorStateHandler<VectorType>{
         return lastTs.value() != null ? lastTs.value() : Long.MIN_VALUE;
     }
 
+    public Long getPrevWatermark() throws IOException {
+        return prevWatermark.value() != null ? prevWatermark.value() : 0L;
+    }
+
     /* Setters */
     public void setAggregateState(VectorType value) throws IOException { aggregateState.update(value); }
     public void setEstimate(VectorType value) throws IOException { estimate.update(value); }
@@ -114,4 +120,5 @@ public class CoordinatorStateHandler<VectorType>{
     public void setPsiBeta(Double value) throws IOException { psiBeta.update(value);}
     public void setLambda(Double value) throws IOException { lambda.update(value);}
     public void setLastTs(Long value) throws IOException { lastTs.update(value);}
+    public void setPrevWatermark(Long value) throws IOException { prevWatermark.update(value); }
 }

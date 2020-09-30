@@ -9,10 +9,14 @@ import datatypes.internals.InitCoordinator;
 import datatypes.internals.Zeta;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.co.CoProcessFunction;
+import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import state.CoordinatorStateHandler;
+
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import static fgm.CoordinatorFunction.*;
 import static jobs.MonitoringJobWithKafka.endOfFile;
@@ -32,9 +36,6 @@ public class CoordinatorProcessFunction<VectorType> extends CoProcessFunction<In
     @Override
     public void processElement1(InternalStream input, Context ctx, Collector<InternalStream> collector) throws Exception {
         //System.out.println(input.getClass());
-        System.out.println("EOF:"+endOfFile+", CWM:"+ctx.timerService().currentWatermark());
-        if(endOfFile && ctx.timerService().currentWatermark() == Long.MAX_VALUE)
-            broadcast_SigInt(collector, cfg);
 
         switch (input.type){
             case "Drift":
@@ -48,11 +49,17 @@ public class CoordinatorProcessFunction<VectorType> extends CoProcessFunction<In
                 break;
         }
 
+        resetTimeoutTimer(ctx.timerService().currentWatermark(), state, ctx);
     }
 
     @Override
-    public void processElement2(InternalStream input, Context ctx, Collector<InternalStream> collector) throws Exception {
+    public void processElement2(InternalStream input, Context ctx, Collector<InternalStream> collector) {
         // here you could initialize the globalEstimate
+    }
+
+    @Override
+    public void onTimer(long timestamp, OnTimerContext ctx, Collector<InternalStream> out) {
+        broadcast_SigInt(out, cfg);
     }
 
     @Override

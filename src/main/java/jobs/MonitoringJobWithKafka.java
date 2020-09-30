@@ -83,18 +83,15 @@ public class MonitoringJobWithKafka {
          *  Reading line by line from file and streaming POJOs
          */
         SingleOutputStreamOperator<InternalStream> streamFromFile = env
-                .addSource(
-                        createConsumerInput(parameters)
-                                .setStartFromEarliest()
-                                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<String>() {
-                                    @Override
-                                    public long extractAscendingTimestamp(String s) {
-                                        return Long.parseLong(s.split(";")[0])*1000;
-                                    }
-                                }))
+                .addSource(createConsumerInput(parameters).setStartFromEarliest())
                 .setParallelism(1)
-                .flatMap(new WorldCupMapSource(config));
-                //.assignTimestampsAndWatermarks(new AscendingWatermark());
+                .flatMap(new WorldCupMapSource(config))
+                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InternalStream>() {
+                    @Override
+                    public long extractAscendingTimestamp(InternalStream internalStream) {
+                        return ((Input)internalStream).getTimestamp();
+                    }
+                });
 
         /**
          *  Creating Iterative Stream
