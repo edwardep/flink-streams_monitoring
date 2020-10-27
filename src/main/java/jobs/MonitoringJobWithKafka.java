@@ -7,20 +7,17 @@ import datatypes.internals.Input;
 import operators.*;
 import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
-import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.util.OutputTag;
 import sources.WorldCupMapSource;
-import sun.nio.cs.ext.MacArabic;
-import utils.AscendingWatermark;
 import utils.MaxWatermark;
 import utils.Misc;
 
@@ -31,8 +28,10 @@ import static utils.DefJobParameters.*;
 
 public class MonitoringJobWithKafka {
 
-    private static final OutputTag<String> Q_estimate = new OutputTag<String>("estimate-side-output") {
+    public static final OutputTag<String> Q_estimate = new OutputTag<String>("estimate-side-output") {
     };
+
+    public static final OutputTag<String> localThroughput = new OutputTag<String>("local-throughput-output") {};
 
     public static boolean endOfFile = false;
 
@@ -170,6 +169,14 @@ public class MonitoringJobWithKafka {
                 .setParallelism(1)
                 .name("Output");
 
+
+        /**
+         * Extract throughput for each worker
+         */
+        worker
+                .getSideOutput(localThroughput)
+                .writeAsText(parameters.get("throughputLogs"), FileSystem.WriteMode.OVERWRITE)
+                .setParallelism(1);
 
         System.out.println(env.getExecutionPlan());
 

@@ -96,7 +96,7 @@ public class Validation {
                     }
                 })
                 .keyBy(InternalStream::getStreamID)
-                .process(new CustomSlidingWindow(Time.seconds(1600), Time.seconds(5)))
+                .process(new CustomSlidingWindow(Time.seconds(14400), Time.seconds(5)))
                 .keyBy(InternalStream::getStreamID)
                 .process(new KeyedProcessFunction<String, InternalStream, String>() {
                     WorkerStateHandler<AGMSSketch> state;
@@ -116,7 +116,7 @@ public class Validation {
                         state = new WorkerStateHandler<>(getRuntimeContext(), config);
                     }
                 })
-                .writeAsText("/home/edwardep/flink-streams_monitoring/logs/validation_window_1600_fromfile.txt", FileSystem.WriteMode.OVERWRITE);
+                .writeAsText("/home/edwardep/flink-streams_monitoring/logs/validation_window_4h_fromfile.txt", FileSystem.WriteMode.OVERWRITE);
 
 
         System.out.println(env.getExecutionPlan());

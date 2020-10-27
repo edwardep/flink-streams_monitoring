@@ -9,6 +9,8 @@ import org.apache.flink.streaming.api.functions.co.CoProcessFunction;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sketches.AGMSSketch;
+import sketches.SketchMath;
 import state.CoordinatorStateHandler;
 
 import java.io.IOException;
@@ -63,6 +65,12 @@ public class CoordinatorFunction {
         VectorType vec = cfg.addVectors(
                 state.getEstimate(),
                 cfg.scaleVector(state.getAggregateState(), 1.0/cfg.workers()));
+
+        // Compute difference of Enew - Eold
+//        double oldEst = SketchMath.median(((AGMSSketch) state.getEstimate()).values());
+//        double newEst = SketchMath.median(((AGMSSketch)vec).values());
+//        double diff = (Math.abs(oldEst - newEst) / newEst) * 100;
+//        System.out.println("Round "+state.getRoundsCounter()+", diff = "+String.format("%.2f", diff)+"%");
 
         state.setEstimate(vec);
         state.setSafeZone(cfg.initializeSafeZone(vec));

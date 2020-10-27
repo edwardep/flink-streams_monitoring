@@ -6,12 +6,14 @@ import datatypes.internals.GlobalEstimate;
 import datatypes.internals.Input;
 import datatypes.internals.Lambda;
 import datatypes.internals.Quantum;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.co.KeyedCoProcessFunction;
 import org.apache.flink.util.Collector;
 import state.WorkerStateHandler;
 
 import static fgm.WorkerFunction.*;
+import static jobs.MonitoringJobWithKafka.localThroughput;
 
 public class WorkerProcessFunction<VectorType>  extends KeyedCoProcessFunction<String, InternalStream, InternalStream, InternalStream> {
 
@@ -33,11 +35,16 @@ public class WorkerProcessFunction<VectorType>  extends KeyedCoProcessFunction<S
         // append input record to Drift
         updateDrift(state, input, cfg);
 
+        // update records Counter
+        state.setUpdates(state.getUpdates() + 1);
+
         // call subRoundProcess once every cfg.windowSlide() seconds
         if(currentEventTimestamp - state.getCurrentSlideTimestamp() >= cfg.windowSlide().toMilliseconds()) {
             state.setCurrentSlideTimestamp(currentEventTimestamp);
             subRoundProcess(state, collector, cfg);
             //System.out.println(context.getCurrentKey()+"> "+context.timerService().currentWatermark());
+
+            context.output(localThroughput,context.getCurrentKey() + "," + System.currentTimeMillis() +","+ state.getUpdates());
         }
     }
 
