@@ -29,8 +29,8 @@ public class WorkerProcessFunction<VectorType>  extends KeyedCoProcessFunction<S
         //System.out.println("id:"+context.getCurrentKey()+", type:"+input.getClass().getName());
         long currentEventTimestamp = ((Input)input).getTimestamp();
 
-        // Delay first drift flush
-        warmup(state, context, cfg.warmup());
+        // Delay first drift flush (Disabled and moved to coordinator)
+        //warmup(state, context, cfg.warmup());
 
         // append input record to Drift
         updateDrift(state, input, cfg);
@@ -42,8 +42,8 @@ public class WorkerProcessFunction<VectorType>  extends KeyedCoProcessFunction<S
         if(currentEventTimestamp - state.getCurrentSlideTimestamp() >= cfg.windowSlide().toMilliseconds()) {
             state.setCurrentSlideTimestamp(currentEventTimestamp);
             subRoundProcess(state, collector, cfg);
-            //System.out.println(context.getCurrentKey()+"> "+context.timerService().currentWatermark());
 
+            // Output local throughput metric
             context.output(localThroughput,context.getCurrentKey() + "," + System.currentTimeMillis() +","+ state.getUpdates());
         }
     }

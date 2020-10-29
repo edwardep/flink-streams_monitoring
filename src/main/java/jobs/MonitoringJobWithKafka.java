@@ -16,6 +16,7 @@ import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
+import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.util.OutputTag;
 import sources.WorldCupMapSource;
 import utils.MaxWatermark;
@@ -66,7 +67,7 @@ public class MonitoringJobWithKafka {
                 .addSource(new SourceFunction<InternalStream>() {
                     @Override
                     public void run(SourceContext<InternalStream> sourceContext) throws Exception {
-                        sourceContext.collect(new InitCoordinator(parameters.getInt("warmup", defWarmup)));
+                        sourceContext.collect(new InitCoordinator(897429601000L));
                     }
 
                     @Override
@@ -74,7 +75,13 @@ public class MonitoringJobWithKafka {
                     }
                 })
                 .setParallelism(1)
-                .name("coord_init");
+                .name("coord_init")
+                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InternalStream>() {
+                    @Override
+                    public long extractAscendingTimestamp(InternalStream internalStream) {
+                        return ((InitCoordinator) internalStream).getWarmup();
+                    }
+                });
 
 
 

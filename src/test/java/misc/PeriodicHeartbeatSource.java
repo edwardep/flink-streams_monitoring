@@ -4,11 +4,15 @@ import configurations.AGMSConfig;
 import datatypes.InternalStream;
 import datatypes.internals.EmptyStream;
 import datatypes.internals.Heartbeat;
+import datatypes.internals.InitCoordinator;
 import datatypes.internals.Input;
+import operators.CustomSlidingWindow;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.TimeCharacteristic;
+import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
@@ -17,18 +21,139 @@ import org.apache.flink.streaming.api.functions.co.KeyedCoProcessFunction;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor;
 import org.apache.flink.streaming.api.watermark.Watermark;
+import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.util.Collector;
 import org.junit.Test;
 import sources.WorldCupMapSource;
 import utils.MaxWatermark;
 
+import javax.print.attribute.IntegerSyntax;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Random;
 
 import static kafka.KafkaUtils.createConsumerInput;
 import static utils.DefJobParameters.defWorkers;
 
 public class PeriodicHeartbeatSource {
+
+    @Test
+    public void oneEventTriggerTimer() throws Exception {
+        ParameterTool parameters = ParameterTool.fromPropertiesFile("/home/edwardep/flink-streams_monitoring/src/main/java/properties/pico.properties");
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
+        env.setParallelism(1);
+        env.getConfig().setAutoWatermarkInterval(1L);
+
+        AGMSConfig config = new AGMSConfig(parameters);
+
+        env
+                .addSource(new SourceFunction<InitCoordinator>() {
+                    @Override
+                    public void run(SourceContext<InitCoordinator> sourceContext) throws Exception {
+                        sourceContext.collect(new InitCoordinator(897429601));
+                    }
+
+                    @Override
+                    public void cancel() {
+
+                    }
+                })
+                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InitCoordinator>() {
+                    @Override
+                    public long extractAscendingTimestamp(InitCoordinator initCoordinator) {
+                        return initCoordinator.getWarmup();
+                    }
+                })
+                .keyBy(InternalStream::unionKey)
+                .process(new KeyedProcessFunction<String, InitCoordinator, String>() {
+                    @Override
+                    public void processElement(InitCoordinator initCoordinator, Context context, Collector<String> collector) throws Exception {
+
+                        long cw = context.timerService().currentWatermark();
+                        System.out.println(cw + " @ "+context.timestamp());
+
+                        context.timerService().registerEventTimeTimer(initCoordinator.getWarmup() + 20000);
+
+                    }
+
+                    @Override
+                    public void onTimer(long timestamp, OnTimerContext ctx, Collector<String> out) throws Exception {
+                        System.out.println("Timer fired @ "+timestamp);
+                    }
+                });
+
+        env.execute();
+    }
+
+    @Test
+    public void idleSourceTest() throws Exception {
+        ParameterTool parameters = ParameterTool.fromPropertiesFile("/home/edwardep/flink-streams_monitoring/src/main/java/properties/pico.properties");
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
+        env.setParallelism(1);
+        env.getConfig().setAutoWatermarkInterval(1L);
+
+        AGMSConfig config = new AGMSConfig(parameters);
+
+        DataStream<InternalStream> source = env
+                .addSource(new SourceFunction<InternalStream>() {
+                    private boolean isRunning = true;
+                    private int count = 0;
+                    private Random rand = new Random(5);
+                    @Override
+                    public void run(SourceContext<InternalStream> sourceContext) throws Exception {
+
+                        long timestamp = 0;
+
+                        while(isRunning && count++ < 5000){
+                            Input event = new Input(
+                                    //rand.nextInt(10) < 9 ? "0":"1",
+                                    count < 3 ? "1" : "0",
+                                    //"0",
+                                    timestamp+=1000,
+                                    Tuple2.of(0,count),
+                                    1.0);
+
+                            sourceContext.collect(event);
+                        }
+                    }
+
+                    @Override
+                    public void cancel() {
+                        isRunning = false;
+                    }
+                })
+
+
+//                .assignTimestampsAndWatermarks(
+//                        new ProcessingTimeTrailingBoundedOutOfOrdernessTimestampExtractor<InternalStream>(
+//                                Time.milliseconds(0),
+//                                Time.milliseconds(10000),
+//                                Time.milliseconds(1000)) {
+//                    @Override
+//                    public long extractTimestamp(InternalStream element) {
+//                        return ((Input) element).getTimestamp();
+//                    }
+//                });
+                .keyBy(InternalStream::getStreamID)
+                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InternalStream>() {
+                    @Override
+                    public long extractAscendingTimestamp(InternalStream internalStream) {
+                        return ((Input) internalStream).getTimestamp();
+                    }
+                });
+
+        source
+                .keyBy(InternalStream::getStreamID)
+                .process(new CustomSlidingWindow(Time.seconds(20), Time.seconds(2)))
+                .print();
+
+
+        env.execute();
+    }
+
+
 
     @Test
     public void periodicHeartbeatTest() throws Exception {

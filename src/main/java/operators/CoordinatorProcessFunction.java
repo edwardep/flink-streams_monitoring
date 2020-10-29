@@ -55,11 +55,18 @@ public class CoordinatorProcessFunction<VectorType> extends CoProcessFunction<In
     @Override
     public void processElement2(InternalStream input, Context ctx, Collector<InternalStream> collector) {
         // here you could initialize the globalEstimate
+        System.out.println("Registering Timer @ "+ctx.timestamp() +"with wm: "+ctx.timerService().currentWatermark());
+        ctx.timerService().registerEventTimeTimer(((InitCoordinator)input).getWarmup() + cfg.warmup().toMilliseconds());
     }
 
     @Override
-    public void onTimer(long timestamp, OnTimerContext ctx, Collector<InternalStream> out) {
-        broadcast_SigInt(out, cfg);
+    public void onTimer(long timestamp, OnTimerContext ctx, Collector<InternalStream> out) throws IOException {
+        if(state.getSafeZone() == null) {
+            broadcast_RequestDrift(out, cfg);
+            System.out.println("Timer fired @ "+timestamp);
+        }
+        else
+            broadcast_SigInt(out, cfg);
     }
 
     @Override

@@ -3,21 +3,21 @@ package datatypes.internals;
 import datatypes.InternalStream;
 
 public class InitCoordinator extends InternalStream {
-    private int warmup;
+    private long warmup;
 
     public InitCoordinator() {
     }
 
-    public InitCoordinator(int warmup) {
+    public InitCoordinator(long warmup) {
         this.warmup = warmup;
     }
 
 
-    public int getWarmup() {
+    public long getWarmup() {
         return warmup;
     }
 
-    public void setWarmup(int warmup) {
+    public void setWarmup(long warmup) {
         this.warmup = warmup;
     }
 
