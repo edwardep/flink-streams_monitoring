@@ -126,23 +126,22 @@ public class PeriodicHeartbeatSource {
                 })
 
 
-                .assignTimestampsAndWatermarks(
-                        new ProcessingTimeTrailingBoundedOutOfOrdernessTimestampExtractor<InternalStream>(
-                                Time.milliseconds(0),           // maxOutOfOrderness
-                                Time.milliseconds(2),       // idlenessDetectionDuration
-                                Time.milliseconds(2)) {      // processingTimeTrailing
-                    @Override
-                    public long extractTimestamp(InternalStream element) {
-                        return ((Input) element).getTimestamp();
-                    }
-                });
-//                .keyBy(InternalStream::getStreamID)
-//                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InternalStream>() {
+//                .assignTimestampsAndWatermarks(
+//                        new ProcessingTimeTrailingBoundedOutOfOrdernessTimestampExtractor<InternalStream>(
+//                                Time.milliseconds(0),           // maxOutOfOrderness
+//                                Time.milliseconds(2),       // idlenessDetectionDuration
+//                                Time.milliseconds(2)) {      // processingTimeTrailing
 //                    @Override
-//                    public long extractAscendingTimestamp(InternalStream internalStream) {
-//                        return ((Input) internalStream).getTimestamp();
+//                    public long extractTimestamp(InternalStream element) {
+//                        return ((Input) element).getTimestamp();
 //                    }
 //                });
+                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InternalStream>() {
+                    @Override
+                    public long extractAscendingTimestamp(InternalStream internalStream) {
+                        return ((Input) internalStream).getTimestamp();
+                    }
+                });
 
         source
                 .process(new ProcessFunction<InternalStream, String>() {

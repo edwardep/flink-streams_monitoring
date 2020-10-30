@@ -93,22 +93,12 @@ public class MonitoringJobWithKafka {
                 .addSource(createConsumerInput(parameters).setStartFromEarliest())
                 .setParallelism(1)
                 .flatMap(new WorldCupMapSource(config))
-                .assignTimestampsAndWatermarks(
-                        new ProcessingTimeTrailingBoundedOutOfOrdernessTimestampExtractor<InternalStream>(
-                                Time.milliseconds(parameters.getInt("mooo", 0)),           // maxOutOfOrderness
-                                Time.milliseconds(parameters.getInt("idd", 0)),       // idlenessDetectionDuration
-                                Time.milliseconds(parameters.getInt("ptt",0))) {      // processingTimeTrailing
-                            @Override
-                            public long extractTimestamp(InternalStream element) {
-                                return ((Input) element).getTimestamp();
-                            }
-                        });
-//                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InternalStream>() {
-//                    @Override
-//                    public long extractAscendingTimestamp(InternalStream internalStream) {
-//                        return ((Input)internalStream).getTimestamp();
-//                    }
-//                });
+                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InternalStream>() {
+                    @Override
+                    public long extractAscendingTimestamp(InternalStream internalStream) {
+                        return ((Input)internalStream).getTimestamp();
+                    }
+                });
 
         /**
          *  Creating Iterative Stream
