@@ -38,7 +38,7 @@ import static utils.DefJobParameters.defWorkers;
 public class PeriodicHeartbeatSource {
 
     @Test
-    public void oneEventTriggerTimer() throws Exception {
+    public void singleEventTriggerTimer() throws Exception {
         ParameterTool parameters = ParameterTool.fromPropertiesFile("/home/edwardep/flink-streams_monitoring/src/main/java/properties/pico.properties");
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
@@ -109,9 +109,9 @@ public class PeriodicHeartbeatSource {
                         while(isRunning && count++ < 5000){
                             Input event = new Input(
                                     //rand.nextInt(10) < 9 ? "0":"1",
-                                    count < 3 ? "1" : "0",
-                                    //"0",
-                                    timestamp+=1000,
+                                    //count < 3 ? "1" : "0",
+                                    "0",
+                                    timestamp+=50000,
                                     Tuple2.of(0,count),
                                     1.0);
 
@@ -126,28 +126,35 @@ public class PeriodicHeartbeatSource {
                 })
 
 
-//                .assignTimestampsAndWatermarks(
-//                        new ProcessingTimeTrailingBoundedOutOfOrdernessTimestampExtractor<InternalStream>(
-//                                Time.milliseconds(0),
-//                                Time.milliseconds(10000),
-//                                Time.milliseconds(1000)) {
-//                    @Override
-//                    public long extractTimestamp(InternalStream element) {
-//                        return ((Input) element).getTimestamp();
-//                    }
-//                });
-                .keyBy(InternalStream::getStreamID)
-                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InternalStream>() {
+                .assignTimestampsAndWatermarks(
+                        new ProcessingTimeTrailingBoundedOutOfOrdernessTimestampExtractor<InternalStream>(
+                                Time.milliseconds(0),           // maxOutOfOrderness
+                                Time.milliseconds(2),       // idlenessDetectionDuration
+                                Time.milliseconds(2)) {      // processingTimeTrailing
                     @Override
-                    public long extractAscendingTimestamp(InternalStream internalStream) {
-                        return ((Input) internalStream).getTimestamp();
+                    public long extractTimestamp(InternalStream element) {
+                        return ((Input) element).getTimestamp();
                     }
                 });
+//                .keyBy(InternalStream::getStreamID)
+//                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InternalStream>() {
+//                    @Override
+//                    public long extractAscendingTimestamp(InternalStream internalStream) {
+//                        return ((Input) internalStream).getTimestamp();
+//                    }
+//                });
 
         source
-                .keyBy(InternalStream::getStreamID)
-                .process(new CustomSlidingWindow(Time.seconds(20), Time.seconds(2)))
-                .print();
+                .process(new ProcessFunction<InternalStream, String>() {
+                    @Override
+                    public void processElement(InternalStream internalStream, Context context, Collector<String> collector) throws Exception {
+                        System.out.println(context.timerService().currentWatermark()+ " > " + internalStream);
+                    }
+                });
+//        source
+//                .keyBy(InternalStream::getStreamID)
+//                .process(new CustomSlidingWindow(Time.seconds(20), Time.seconds(2)))
+//                .print();
 
 
         env.execute();

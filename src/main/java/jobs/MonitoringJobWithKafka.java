@@ -21,6 +21,7 @@ import org.apache.flink.util.OutputTag;
 import sources.WorldCupMapSource;
 import utils.MaxWatermark;
 import utils.Misc;
+import utils.ProcessingTimeTrailingBoundedOutOfOrdernessTimestampExtractor;
 
 
 import static kafka.KafkaUtils.*;
@@ -92,12 +93,22 @@ public class MonitoringJobWithKafka {
                 .addSource(createConsumerInput(parameters).setStartFromEarliest())
                 .setParallelism(1)
                 .flatMap(new WorldCupMapSource(config))
-                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InternalStream>() {
-                    @Override
-                    public long extractAscendingTimestamp(InternalStream internalStream) {
-                        return ((Input)internalStream).getTimestamp();
-                    }
-                });
+                .assignTimestampsAndWatermarks(
+                        new ProcessingTimeTrailingBoundedOutOfOrdernessTimestampExtractor<InternalStream>(
+                                Time.milliseconds(parameters.getInt("mooo", 0)),           // maxOutOfOrderness
+                                Time.milliseconds(parameters.getInt("idd", 0)),       // idlenessDetectionDuration
+                                Time.milliseconds(parameters.getInt("ptt",0))) {      // processingTimeTrailing
+                            @Override
+                            public long extractTimestamp(InternalStream element) {
+                                return ((Input) element).getTimestamp();
+                            }
+                        });
+//                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InternalStream>() {
+//                    @Override
+//                    public long extractAscendingTimestamp(InternalStream internalStream) {
+//                        return ((Input)internalStream).getTimestamp();
+//                    }
+//                });
 
         /**
          *  Creating Iterative Stream
@@ -183,7 +194,8 @@ public class MonitoringJobWithKafka {
         worker
                 .getSideOutput(localThroughput)
                 .writeAsText(parameters.get("throughputLogs"), FileSystem.WriteMode.OVERWRITE)
-                .setParallelism(1);
+                .setParallelism(1)
+                .name("Throughput metric");
 
         System.out.println(env.getExecutionPlan());
 
