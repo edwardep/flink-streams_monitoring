@@ -27,12 +27,8 @@ public class CoordinatorStateHandler<VectorType>{
     private transient ValueState<Long> lastTs;
     private transient ValueState<Long> prevWatermark;
 
-    private IntCounter roundsCounter = new IntCounter();
-    private IntCounter subroundsCounter = new IntCounter();
-    private IntCounter rebalancedRoundsCounter = new IntCounter();
-
     private RuntimeContext runtimeContext;
-    private BaseConfig<VectorType> cfg;
+    private final BaseConfig<VectorType> cfg;
 
     public CoordinatorStateHandler(RuntimeContext runtimeContext, BaseConfig<VectorType> cfg) {
         this.cfg = cfg;
@@ -50,10 +46,6 @@ public class CoordinatorStateHandler<VectorType>{
         lambda = createState("lambda", Types.DOUBLE);
         lastTs = createState("lastTas", Types.LONG);
         prevWatermark = createState("prevWatermark", Types.LONG);
-
-        runtimeContext.addAccumulator("roundsCounter", this.roundsCounter);
-        runtimeContext.addAccumulator("subroundsCounter", this.subroundsCounter);
-        runtimeContext.addAccumulator("rebalancedRoundsCounter", this.rebalancedRoundsCounter);
     }
 
     private <V> ValueState<V> createState(String name, TypeInformation<V> type) {
@@ -62,17 +54,6 @@ public class CoordinatorStateHandler<VectorType>{
     }
 
     /* Getters */
-    public IntCounter getRoundsCounter() {
-        return roundsCounter;
-    }
-
-    public IntCounter getSubroundsCounter() {
-        return subroundsCounter;
-    }
-
-    public IntCounter getRebalancedRoundsCounter() {
-        return rebalancedRoundsCounter;
-    }
 
     public VectorType getEstimate() throws IOException {
         return estimate.value() != null ? estimate.value() : cfg.newVectorInstance();

@@ -24,16 +24,18 @@ import utils.Misc;
 import utils.ProcessingTimeTrailingBoundedOutOfOrdernessTimestampExtractor;
 
 
+import java.util.Properties;
+
 import static kafka.KafkaUtils.*;
 import static utils.DefJobParameters.*;
 
 
 public class MonitoringJobWithKafka {
 
-    public static final OutputTag<String> Q_estimate = new OutputTag<String>("estimate-side-output") {
-    };
-
+    public static final OutputTag<String> Q_estimate = new OutputTag<String>("estimate-side-output") {};
     public static final OutputTag<String> localThroughput = new OutputTag<String>("local-throughput-output") {};
+    public static final OutputTag<String> coordinatorMetrics = new OutputTag<String>("coordinator-metrics-output") {};
+    public static final OutputTag<String> workerMetrics = new OutputTag<String>("worker-metrics-output") {};
 
     public static boolean endOfFile = false;
 
@@ -54,7 +56,7 @@ public class MonitoringJobWithKafka {
         env.setParallelism(parameters.getInt("workers", defWorkers));
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
         env.getConfig().setAutoWatermarkInterval(1);
-        //env.getConfig().disableGenericTypes(); //todo: Generics fall back to Kryo
+
 
         /**
          *  The FGM configuration class. (User-implemented functions)
@@ -173,24 +175,34 @@ public class MonitoringJobWithKafka {
          */
         coordinator
                 .getSideOutput(Q_estimate)
-                .writeAsText(parameters.get("output", defOutputPath), FileSystem.WriteMode.OVERWRITE)
+                .writeAsText("logs/final/output_"+parameters.get("jobName", defOutputPath), FileSystem.WriteMode.OVERWRITE)
                 .setParallelism(1)
                 .name("Output");
 
 
         /**
-         * Extract throughput for each worker
+         * Extract metrics for each worker and the coordinator
          */
         worker
                 .getSideOutput(localThroughput)
-                .writeAsText(parameters.get("throughputLogs"), FileSystem.WriteMode.OVERWRITE)
+                .writeAsText("logs/final/throughput_"+parameters.get("jobName"), FileSystem.WriteMode.OVERWRITE)
                 .setParallelism(1)
-                .name("Throughput metric");
+                .name("Throughput Metrics");
 
-        System.out.println(env.getExecutionPlan());
+        worker
+                .getSideOutput(workerMetrics)
+                .writeAsText("logs/final/workerMetrics_"+parameters.get("jobName"), FileSystem.WriteMode.OVERWRITE)
+                .setParallelism(1)
+                .name("Worker Metrics");
 
-        //Misc.printExecutionMessage(parameters);
+        coordinator
+                .getSideOutput(coordinatorMetrics)
+                .writeAsText("logs/final/coordinatorMetrics_"+parameters.get("jobName"), FileSystem.WriteMode.OVERWRITE)
+                .setParallelism(1)
+                .name("Coordinator Metrics");
+
+
+        //System.out.println(env.getExecutionPlan());
         JobExecutionResult executionResult = env.execute(parameters.get("jobName", defJobName));
-        Misc.printExecutionResults(parameters, executionResult);
     }
 }

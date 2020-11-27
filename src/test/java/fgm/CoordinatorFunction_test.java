@@ -161,7 +161,7 @@ public class CoordinatorFunction_test {
 
                 // test_case: Workers send their Phi(X) values and coordinator computes Psi.
                 for (int tid = 0; tid < uniqueStreams; tid++)
-                    handleZeta(state, zeta, collector, conf);
+                    handleZeta(state, zeta, collector, conf, ctx);
 
                 // validate
                 assertEquals(uniqueStreams * zeta, state.getPsi());
@@ -206,7 +206,7 @@ public class CoordinatorFunction_test {
                  *   should begin.
                  */
                 for (int tid = 0; tid < uniqueStreams; tid++)
-                    handleZeta(state, zeta, collector, conf);
+                    handleZeta(state, zeta, collector, conf, ctx);
 
                 // validate
                 assertEquals(uniqueStreams * zeta, state.getPsi());
@@ -243,17 +243,17 @@ public class CoordinatorFunction_test {
             final TestP4Config conf = new TestP4Config();
 
             @Override
-            public void processElement(InternalStream input, Context ctx, Collector<InternalStream> collector) throws Exception {
+            public void processElement(InternalStream input, Context context, Collector<InternalStream> collector) throws Exception {
                 /* Sync must be disabled for this test case. By default it is done by one of the other two functions */
                 state.setSync(false);
-
+                CoProcessFunction.Context ctx = Mockito.mock(CoProcessFunction.Context.class);
                 /*
                  * TEST_CASE:
                  *      Calling handleIncrement() with parallelism 4 and increment value 1.
                  *      Expecting to increase the global counter and do nothing
                  */
                 Integer increment = 1;
-                handleIncrement(state, increment, collector, conf);
+                handleIncrement(state, increment, collector, conf, ctx);
                 assertEquals(increment, state.getGlobalCounter());
                 assertFalse(state.getSync());
 
@@ -264,7 +264,7 @@ public class CoordinatorFunction_test {
                  *      In this case it must broadcast a ZetaRequest and disable sync.
                  */
                 increment = 5; // obv this increment > uniqueStreams (k)
-                handleIncrement(state, increment, collector, conf);
+                handleIncrement(state, increment, collector, conf, ctx);
                 assertEquals((Integer) 0, state.getGlobalCounter());
                 assertTrue(state.getSync());
             }
@@ -305,13 +305,13 @@ public class CoordinatorFunction_test {
                     // receiving Phi(Xi), new SubRound
                     InternalStream stream = new Zeta(1.0);
                     for (int i = 0; i < uniqueStreams; i++)
-                        handleZeta(state, ((Zeta) stream).getPayload(), collector, conf);
+                        handleZeta(state, ((Zeta) stream).getPayload(), collector, conf, ctx);
 
                     assertFalse(state.getSync());
 
                     // receiving increment (violation), end of subRound
                     stream = new Increment(5);
-                    handleIncrement(state, ((Increment) stream).getPayload(), collector, conf);
+                    handleIncrement(state, ((Increment) stream).getPayload(), collector, conf, ctx);
                     assertTrue(state.getSync());
                 }
             }

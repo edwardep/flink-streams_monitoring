@@ -3,20 +3,18 @@ package fgm;
 
 import configurations.BaseConfig;
 import datatypes.InternalStream;
-import datatypes.Vector;
 import datatypes.internals.*;
 import org.apache.flink.streaming.api.functions.co.CoProcessFunction;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sketches.AGMSSketch;
-import sketches.SketchMath;
 import state.CoordinatorStateHandler;
 
 import java.io.IOException;
 
 import static jobs.MonitoringJob.Q_estimate;
-
+import static utils.Metrics.collectMetric;
+import static utils.Metrics.CoordinatorMetrics.*;
 
 /**
  * The CoordinatorFunction class contains all the required FGM Coordinator Node methods.
@@ -35,6 +33,8 @@ public class CoordinatorFunction {
                                                 Collector<InternalStream> collector,
                                                 BaseConfig<VectorType> cfg) throws Exception {
 
+        collectMetric(RECEIVED_DRIFT, state, ctx);
+
         if (state.getNodeCount() < cfg.workers()) {
             state.setNodeCount(state.getNodeCount() + 1);
 
@@ -49,7 +49,7 @@ public class CoordinatorFunction {
 
             // This allows rebalancing to happen only once per round and not in the first round
             if(cfg.rebalancingEnabled() && state.getSafeZone() != null && state.getLambda() == 1.0)
-                rebalanceBimodal(state, collector, cfg);
+                rebalanceBimodal(state, collector, cfg, ctx);
             else
                 newRound(state, ctx, collector, cfg);
         }
@@ -77,6 +77,8 @@ public class CoordinatorFunction {
 
         /* Begin subRounds phase*/
         broadcast_Estimate(state.getEstimate(), collector, cfg);
+        collectMetric(SENT_ESTIMATE, state, ctx);
+        collectMetric(ROUND, state, ctx);
 
         /*  Wait asynchronously for increment values */
         state.setSync(false);
@@ -88,9 +90,6 @@ public class CoordinatorFunction {
         state.setAggregateState(null);
         state.setPsiBeta(0.0);
         state.setLambda(1.0);
-
-        //System.out.println("rounds: "+ (++rounds));
-        state.getRoundsCounter().add(1);
     }
 
     /**
@@ -105,7 +104,10 @@ public class CoordinatorFunction {
     public static <VectorType> void handleZeta(CoordinatorStateHandler<VectorType> state,
                                                Double payload,
                                                Collector<InternalStream> collector,
-                                               BaseConfig<VectorType> cfg) throws Exception {
+                                               BaseConfig<VectorType> cfg,
+                                               CoProcessFunction.Context ctx) throws Exception {
+
+        collectMetric(RECEIVED_ZETA, state, ctx);
 
         /*  Aggregate the incoming Phi(Xi) values to Psi */
         if (state.getNodeCount() < cfg.workers()) {
@@ -120,10 +122,12 @@ public class CoordinatorFunction {
             // Compute threshold
             double T = cfg.getMQF()*cfg.workers()*cfg.safeFunction(cfg.newVectorInstance(), state.getEstimate(), state.getSafeZone());
 
-            if(state.getPsi() + state.getPsiBeta() < T)
+            if(state.getPsi() + state.getPsiBeta() < T) {
                 broadcast_RequestDrift(collector, cfg);
+                collectMetric(SENT_REQ_DRIFT, state, ctx);
+            }
             else
-                startSubround(state, collector, cfg);
+                startSubround(state, collector, cfg, ctx);
         }
     }
 
@@ -139,7 +143,10 @@ public class CoordinatorFunction {
     public static <VectorType> void handleIncrement(CoordinatorStateHandler<VectorType> state,
                                                     Integer payload,
                                                     Collector<InternalStream> collector,
-                                                    BaseConfig<VectorType> cfg) throws IOException {
+                                                    BaseConfig<VectorType> cfg,
+                                                    CoProcessFunction.Context ctx) throws IOException {
+
+        collectMetric(RECEIVED_INCREMENT, state, ctx);
 
         /*  Do not proceed until a new SubRound begins */
         if(state.getSync())
@@ -152,35 +159,39 @@ public class CoordinatorFunction {
         if(state.getGlobalCounter() > cfg.workers()) {
 
             broadcast_RequestZeta(collector, cfg);
+            collectMetric(SENT_REQ_ZETA, state, ctx);
+            collectMetric(SUBROUND, state, ctx);
 
+            /* reset subround params */
             state.setPsi(0d);
             state.setGlobalCounter(0);
 
             /*  Enable sync and wait for Phi(Xi) values */
             state.setSync(true);
-
-            //System.out.println("subRounds: "+ (++subRounds));
-            state.getSubroundsCounter().add(1);
         }
     }
 
     public static <VectorType> void rebalanceBimodal(CoordinatorStateHandler<VectorType> state,
                                                      Collector<InternalStream> collector,
-                                                     BaseConfig<VectorType> cfg) throws Exception {
+                                                     BaseConfig<VectorType> cfg,
+                                                     CoProcessFunction.Context ctx) throws Exception {
         double lambda = 0.5;
         state.setLambda(lambda);
         updatePsiBeta(lambda, state, cfg);
         broadcast_Lambda(lambda, collector, cfg);
-        state.getRebalancedRoundsCounter().add(1);
+        collectMetric(SENT_LAMBDA, state, ctx);
+        collectMetric(REBALANCED_ROUND, state, ctx);
     }
 
     public static <VectorType> void startSubround(CoordinatorStateHandler<VectorType> state,
                                                   Collector<InternalStream> collector,
-                                                  BaseConfig<VectorType> cfg) throws IOException {
+                                                  BaseConfig<VectorType> cfg,
+                                                  CoProcessFunction.Context ctx) throws IOException {
         /*  Configuration is SAFE, broadcast new Quantum */
         Double quantum = (state.getPsi() + state.getPsiBeta()) / (2 * cfg.workers());
 
         broadcast_Quantum(quantum, collector, cfg);
+        collectMetric(SENT_QUANTUM, state, ctx);
 
         /*  Wait for increment values */
         state.setSync(false);
@@ -229,6 +240,8 @@ public class CoordinatorFunction {
                 state.getEstimate(),
                 state.getSafeZone()));
     }
+
+
 
     public static <VectorType> void resetTimeoutTimer(long currentWatermark,
                                                       CoordinatorStateHandler<VectorType> state,

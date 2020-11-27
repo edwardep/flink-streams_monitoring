@@ -42,10 +42,10 @@ public class CoordinatorProcessFunction<VectorType> extends CoProcessFunction<In
                 handleDrift(state, (Drift<VectorType>) input, ctx, collector, cfg);
                 break;
             case "Zeta":
-                handleZeta(state, ((Zeta) input).getPayload(), collector, cfg);
+                handleZeta(state, ((Zeta) input).getPayload(), collector, cfg, ctx);
                 break;
             case "Increment":
-                handleIncrement(state, ((Increment) input).getPayload(), collector, cfg);
+                handleIncrement(state, ((Increment) input).getPayload(), collector, cfg, ctx);
                 break;
         }
 
@@ -55,7 +55,7 @@ public class CoordinatorProcessFunction<VectorType> extends CoProcessFunction<In
     @Override
     public void processElement2(InternalStream input, Context ctx, Collector<InternalStream> collector) {
         // here you could initialize the globalEstimate
-        System.out.println("Registering Timer @ "+ctx.timestamp() +"with wm: "+ctx.timerService().currentWatermark());
+        //System.out.println("Registering Timer @ "+ctx.timestamp() +"with wm: "+ctx.timerService().currentWatermark());
         ctx.timerService().registerEventTimeTimer(((InitCoordinator)input).getWarmup() + cfg.warmup().toMilliseconds());
     }
 
@@ -63,7 +63,7 @@ public class CoordinatorProcessFunction<VectorType> extends CoProcessFunction<In
     public void onTimer(long timestamp, OnTimerContext ctx, Collector<InternalStream> out) throws IOException {
         if(state.getSafeZone() == null) {
             broadcast_RequestDrift(out, cfg);
-            System.out.println("Timer fired @ "+timestamp);
+            //System.out.println("Timer fired @ "+timestamp);
         }
         else
             broadcast_SigInt(out, cfg);

@@ -59,13 +59,19 @@ public class MonitoringJob {
                 .addSource(new SourceFunction<InternalStream>() {
                     @Override
                     public void run(SourceContext<InternalStream> sourceContext) throws Exception {
-                        sourceContext.collect(new InitCoordinator(parameters.getInt("warmup", defWarmup)));
+                        sourceContext.collect(new InitCoordinator(897429601000L));
                     }
                     @Override
                     public void cancel() { }
                 })
                 .setParallelism(1)
-                .name("coord_init");
+                .name("coord_init")
+                .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<InternalStream>() {
+                    @Override
+                    public long extractAscendingTimestamp(InternalStream internalStream) {
+                        return ((InitCoordinator) internalStream).getWarmup();
+                    }
+                });
 
 
         /**

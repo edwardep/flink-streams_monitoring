@@ -16,6 +16,9 @@ import state.WorkerStateHandler;
 import java.io.IOException;
 import java.io.Serializable;
 
+import static utils.Metrics.WorkerMetrics.SENT_INCREMENT;
+import static utils.Metrics.collectMetric;
+
 
 /**
  * The WorkerFunction class contains all the required FGM Worker Node methods.
@@ -150,7 +153,8 @@ public class WorkerFunction implements Serializable {
      */
     public static <VectorType> void subRoundProcess(WorkerStateHandler<VectorType> state,
                                                     Collector<InternalStream> out,
-                                                    BaseConfig<VectorType> cfg) throws Exception {
+                                                    BaseConfig<VectorType> cfg,
+                                                    KeyedCoProcessFunction<?,?,?,?>.Context ctx) throws Exception {
 
         /*  While waiting for new Round or new SubRound, do nothing */
         if (!state.getSubRoundPhase())
@@ -172,6 +176,7 @@ public class WorkerFunction implements Serializable {
         if (increment > 0) {
             state.setLocalCounter(new_counter);
             out.collect(new Increment(increment));
+            collectMetric(SENT_INCREMENT, state, ctx);
         }
     }
 

@@ -13,11 +13,14 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.KeyedProcessFunction;
+import org.apache.flink.streaming.api.functions.co.CoProcessFunction;
+import org.apache.flink.streaming.api.functions.co.KeyedCoProcessFunction;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.util.Collector;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 import state.WorkerStateHandler;
 import test_utils.Testable;
 
@@ -184,9 +187,10 @@ public class WorkerFunction_test {
             public void processElement(InternalStream internalStream, Context context, Collector<InternalStream> collector) throws Exception {
                 // setup : initialize estimate, so that phi(X) has non zero value
                 state.setEstimate(new Vector(generateSequence(1,10d)));
+                KeyedCoProcessFunction<?,?,?,?>.Context ctx = Mockito.mock(KeyedCoProcessFunction.Context.class);
 
                 // test_case: SubRound phase is not yet enabled
-                subRoundProcess(state, collector, conf);
+                subRoundProcess(state, collector, conf, ctx);
 
                 // early exit (first condition)
                 assertEquals(0.0, state.getFi());
@@ -195,7 +199,7 @@ public class WorkerFunction_test {
                 state.setSubRoundPhase(true);
 
                 // test_case: Drift is empty, should exit immediately
-                subRoundProcess(state, collector, conf);
+                subRoundProcess(state, collector, conf, ctx);
 
                 // early exit (second condition)
                 assertEquals(0.0, state.getFi());
@@ -207,7 +211,7 @@ public class WorkerFunction_test {
                 state.setSubRoundInit(false);
 
                 // test_case: A drift update occurred. Expecting the new counter to increase by 1, and phi < -1.0
-                subRoundProcess(state, collector, conf);
+                subRoundProcess(state, collector, conf, ctx);
 
                 // validate
                 assertEquals(1.5, state.getFi());

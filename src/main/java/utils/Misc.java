@@ -25,6 +25,7 @@ public class Misc {
         System.out.println(msg);
     }
 
+    @Deprecated
     public static void printExecutionResults(ParameterTool parameters, JobExecutionResult result) {
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append(parameters.get("jobName", defJobName)).append(",");
